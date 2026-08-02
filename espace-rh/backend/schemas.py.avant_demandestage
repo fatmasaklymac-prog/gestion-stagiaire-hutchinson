@@ -1,0 +1,128 @@
+from datetime import date, datetime
+from pydantic import BaseModel
+
+
+# ============================================================
+# Schéma pour modifier son propre profil (PUT /moi)
+# ============================================================
+
+class ProfilUpdate(BaseModel):
+    nom: str | None = None
+    email: str | None = None
+    telephone: str | None = None
+    localisation: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================
+# Schéma pour changer son mot de passe (PUT /moi/mot-de-passe)
+# ============================================================
+
+class ChangementMotDePasse(BaseModel):
+    ancien_mot_de_passe: str
+    nouveau_mot_de_passe: str
+
+
+# ============================================================
+# Schémas pour le mot de passe oublié (simulation)
+# ============================================================
+
+class MotDePasseOublie(BaseModel):
+    email: str
+
+
+class ReinitialiserMotDePasse(BaseModel):
+    token: str
+    nouveau_mot_de_passe: str
+
+
+# ============================================================
+# Schémas pour les compétences techniques du stagiaire
+# ============================================================
+
+class CompetenceCreate(BaseModel):
+    nom: str
+
+
+class CompetenceOut(BaseModel):
+    id: int
+    nom: str
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================
+# Schémas pour l'historique de formation du stagiaire
+# ============================================================
+
+class FormationCreate(BaseModel):
+    etablissement: str
+    diplome: str | None = None
+    date_debut: str | None = None
+    date_fin: str | None = None
+
+
+class FormationOut(BaseModel):
+    id: int
+    etablissement: str
+    diplome: str | None = None
+    date_debut: date | None = None
+    date_fin: date | None = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================
+# Schémas pour les commentaires de l'encadrant sur un stagiaire
+# ============================================================
+
+class CommentaireCreate(BaseModel):
+    titre: str
+    contenu: str
+
+
+class CommentaireOut(BaseModel):
+    id: int
+    titre: str
+    contenu: str
+    date_commentaire: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================
+# Schémas pour la gestion encadrant (dates, incidents)
+# ============================================================
+
+class DatesUpdate(BaseModel):
+    date_debut: date
+    date_fin: date
+
+
+class IncidentCreate(BaseModel):
+    titre: str
+    contenu: str
+
+
+# ============================================================
+# Schéma pour l'affectation d'un stagiaire à l'encadrant courant
+# ============================================================
+
+class StagiaireDisponibleOut(BaseModel):
+    id: int
+    nom: str
+    prenom: str
+    email: str | None = None
+    photo_url: str | None = None
+    specialisation: str | None = None
+    type_stage: str | None = None
+    date_debut: date
+    date_fin: date
+
+    class Config:
+        from_attributes = True

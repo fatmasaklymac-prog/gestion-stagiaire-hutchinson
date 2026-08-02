@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Poser un token de test</title>
+<style>
+  body{ font-family: -apple-system, sans-serif; max-width:520px; margin:60px auto; padding:0 20px; }
+  button{ background:#0F1F4D; color:white; border:none; padding:12px 20px; border-radius:8px; font-size:14px; cursor:pointer; margin-top:12px; }
+  code{ background:#f1f2f4; padding:2px 6px; border-radius:4px; }
+  p{ line-height:1.5; color:#333; }
+</style>
+</head>
+<body>
+  <h2>🔑 Poser un token de test</h2>
+  <p>Cette page sert uniquement à tester le dashboard dynamique sans avoir de vrai système de login pour le moment.</p>
+  <p>Clique sur le bouton ci-dessous pour enregistrer un faux token JWT dans le <code>localStorage</code>, puis ouvre <code>dashboard-stagiaire.html</code>.</p>
+  <button onclick="setToken()">Poser le token de test</button>
+  <p id="status"></p>
+
+  <script>
+    function setToken(){
+      localStorage.setItem("token", "fake-jwt-token-for-testing");
+      document.getElementById("status").textContent = "✅ Token posé. Tu peux maintenant ouvrir dashboard-stagiaire.html dans le même navigateur.";
+    }
+  </script>
+</body>
+</html>
