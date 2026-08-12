@@ -415,9 +415,6 @@ function Presences() {
                   sx={{
                     fontWeight: 700,
                     color: PRIMARY,
-                    fontSize: "0.7rem",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
                     borderBottom: "none",
                     py: 1.5,
                   }}

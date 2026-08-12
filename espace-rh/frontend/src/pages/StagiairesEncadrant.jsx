@@ -38,6 +38,10 @@ import TuneIcon from "@mui/icons-material/Tune";
 import AddIcon from "@mui/icons-material/Add";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import GroupsIcon from "@mui/icons-material/Groups";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import EventBusyIcon from "@mui/icons-material/EventBusy";
+import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
 import CloseIcon from "@mui/icons-material/Close";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -80,25 +84,48 @@ function estSortantBientot(dateFin) {
   return j >= 0 && j <= 15;
 }
 
-function CarteStatMini({ titre, valeur, sousTexte, couleurSousTexte, progressionBarre }) {
+function CarteStat({ titre, valeur, Icone, couleurIcone, couleurFond, sousTexte, couleurSousTexte, progressionBarre }) {
   return (
     <Paper
       elevation={0}
-      sx={{ p: 2.5, borderRadius: 3, border: `1px solid ${BORDER}`, bgcolor: WHITE, flex: 1, minWidth: 180 }}
+      sx={{
+        p: 3,
+        borderRadius: 4,
+        border: `1px solid ${BORDER}`,
+        bgcolor: WHITE,
+        flex: 1,
+        minWidth: 220,
+        transition: "all 0.25s ease",
+        "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" },
+      }}
     >
-      <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.68rem" }}>
-        {titre}
-      </Typography>
-      <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mt: 0.5 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem", lineHeight: 1 }}>
-          {valeur}
-        </Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: couleurFond,
+            color: couleurIcone,
+          }}
+        >
+          <Icone sx={{ fontSize: 24 }} />
+        </Box>
         {sousTexte && (
           <Typography variant="caption" sx={{ color: couleurSousTexte || TEXT_LIGHT, fontWeight: 700 }}>
             {sousTexte}
           </Typography>
         )}
       </Box>
+      <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.7rem", mb: 1 }}>
+        {titre}
+      </Typography>
+      <Typography variant="h3" sx={{ fontWeight: 700, color: PRIMARY, lineHeight: 1, fontSize: "2rem" }}>
+        {valeur}
+      </Typography>
       {progressionBarre !== undefined && (
         <LinearProgress
           variant="determinate"
@@ -253,38 +280,8 @@ function StagiairesEncadrant() {
 
   return (
     <Box sx={{ bgcolor: BACKGROUND, minHeight: "100%" }}>
-      {/* Barre du haut */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: { xs: 2, md: 3 }, bgcolor: WHITE, borderBottom: `1px solid ${BORDER}`, flexWrap: "wrap", gap: 2 }}>
-        <TextField
-          size="small"
-          placeholder="Rechercher un stagiaire..."
-          value={recherche}
-          onChange={(e) => {
-            setRecherche(e.target.value);
-            setPage(1);
-          }}
-          sx={{ width: { xs: "100%", sm: 320 }, "& .MuiOutlinedInput-root": { borderRadius: 3, bgcolor: BACKGROUND } }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: TEXT_LIGHT, fontSize: 20 }} />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton size="small">
-            <Badge variant="dot" color="error" invisible={evaluationsAFaire === 0}>
-              <NotificationsNoneIcon sx={{ color: PRIMARY }} />
-            </Badge>
-          </IconButton>
-          <IconButton size="small"><AccountCircleIcon sx={{ color: PRIMARY }} /></IconButton>
-        </Box>
-      </Box>
 
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2, mb: 3 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
@@ -316,24 +313,51 @@ function StagiairesEncadrant() {
           </Box>
         </Box>
 
-        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+        <Divider sx={{ mb: 3 }} />
 
         <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", mb: 3 }}>
-          <CarteStatMini titre="Total stagiaires" valeur={total} />
-          <CarteStatMini titre="Moyenne avancement" valeur={`${moyenneAvancement}%`} progressionBarre={moyenneAvancement} />
-          <CarteStatMini
+          <CarteStat titre="Total stagiaires" valeur={total} Icone={GroupsIcon} couleurIcone={PRIMARY} couleurFond="#E8EAF6" />
+          <CarteStat titre="Moyenne avancement" valeur={`${moyenneAvancement}%`} Icone={TrendingUpIcon} couleurIcone={SUCCESS} couleurFond="#E8F5E9" progressionBarre={moyenneAvancement} />
+          <CarteStat
             titre="Stagiaires sortants"
             valeur={sortantsBientot}
+            Icone={EventBusyIcon}
+            couleurIcone={WARNING}
+            couleurFond="#FFF3E0"
             sousTexte={prochaineSortie ? `Prévu le ${formatDateCourte(prochaineSortie.date_fin)}` : undefined}
             couleurSousTexte={WARNING}
           />
-          <CarteStatMini
+          <CarteStat
             titre="Évaluations à faire"
             valeur={evaluationsAFaire}
+            Icone={AssignmentLateIcon}
+            couleurIcone={SECONDARY}
+            couleurFond="#FDECEC"
             sousTexte={evaluationsAFaire > 0 ? "Urgent" : undefined}
             couleurSousTexte={SECONDARY}
           />
         </Box>
+
+        <Paper elevation={0} sx={{ p: 2, mb: 3, borderRadius: 4, border: `1px solid ${BORDER}`, bgcolor: WHITE, display: "flex", alignItems: "center" }}>
+          <TextField
+            placeholder="Rechercher par nom, email, CIN..."
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            size="small"
+            sx={{ flex: 1, "& .MuiOutlinedInput-root": { borderRadius: 3 } }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: TEXT_LIGHT }} />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+        </Paper>
+
+        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
         <Paper elevation={0} sx={{ borderRadius: 4, border: `1px solid ${BORDER}`, bgcolor: WHITE, overflow: "hidden" }}>
           {stagiairesFiltres.length === 0 ? (
@@ -345,13 +369,13 @@ function StagiairesEncadrant() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", border: "none" }}>Stagiaire</TableCell>
-                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", border: "none" }}>Université / École</TableCell>
-                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", border: "none" }}>Dpt / Type</TableCell>
-                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", border: "none" }}>Période</TableCell>
-                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", border: "none" }}>Avancement</TableCell>
-                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", border: "none" }}>Statut</TableCell>
-                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", border: "none" }} align="right">Actions</TableCell>
+                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, border: "none" }}>Stagiaire</TableCell>
+                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, border: "none" }}>Université / École</TableCell>
+                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, border: "none" }}>Dpt / Type</TableCell>
+                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, border: "none" }}>Période</TableCell>
+                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, border: "none" }}>Avancement</TableCell>
+                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, border: "none" }}>Statut</TableCell>
+                    <TableCell sx={{ color: TEXT_LIGHT, fontWeight: 700, border: "none" }} align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

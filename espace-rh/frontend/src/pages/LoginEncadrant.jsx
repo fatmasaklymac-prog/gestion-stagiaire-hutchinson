@@ -19,6 +19,8 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import GroupsIcon from "@mui/icons-material/Groups";
+import ShaderBackground from "../components/ShaderBackground";
+import { encadrantFragmentShader } from "../shaders/encadrantShader";
 
 const API_URL = "http://127.0.0.1:8001";
 const ACCENT = "#1D2B5B";
@@ -106,6 +108,7 @@ export default function LoginEncadrant() {
           bgcolor: ACCENT,
         }}
       >
+        <ShaderBackground fragmentShader={encadrantFragmentShader} />
         <Box sx={{ position: "relative", zIndex: 1, p: { xs: 4, md: 6 } }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Box

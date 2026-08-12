@@ -537,16 +537,27 @@ Durée: ${mois} mois`;
       )}
 
       {/* Tableau */}
-      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: "1px solid", borderColor: BORDER, overflow: "hidden", bgcolor: WHITE }}>
-        <Table>
+      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: "1px solid", borderColor: BORDER, width: "100%", maxWidth: "100%", overflowX: "hidden", overflowY: "hidden", bgcolor: WHITE }}>
+        <Table sx={{ tableLayout: "fixed", width: "100%" }}>
+          <colgroup>
+            <col style={{ width: "18%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "7%" }} />
+          </colgroup>
           <TableHead>
             <TableRow sx={{ bgcolor: "#F8FAFC" }}>
-              {["Stagiaire", "Contact", "CIN", "Université / Diplôme", "Type de stage", "Département", "Encadrant", "Période", "Statut"].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, color: PRIMARY, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "none", py: 1.5 }}>
+              {["Stagiaire", "CIN", "Université / Diplôme", "Type de stage", "Département", "Encadrant", "Période", "Statut"].map((h) => (
+                <TableCell key={h} sx={{ fontWeight: 700, color: PRIMARY, borderBottom: "none", py: 1, px: 1 }}>
                   {h}
                 </TableCell>
               ))}
-              <TableCell align="right" sx={{ fontWeight: 700, color: PRIMARY, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "none", py: 1.5 }}>
+              <TableCell align="right" sx={{ fontWeight: 700, color: PRIMARY, borderBottom: "none", py: 1, px: 1 }}>
                 Actions
               </TableCell>
             </TableRow>
@@ -555,54 +566,45 @@ Durée: ${mois} mois`;
             {filteredStagiaires.map((s) => (
               <TableRow key={s.id} hover onClick={() => navigate(`/stagiaires/${s.id}`)}
                 sx={{ cursor: "pointer", transition: "all 0.2s ease", "&:hover": { bgcolor: "#F8FAFC" }, "&:last-child td": { borderBottom: "none" } }}>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Avatar sx={{ bgcolor: getAvatarColor(s.id), width: 44, height: 44, fontSize: 15, fontWeight: 700 }}>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                    <Avatar sx={{ bgcolor: getAvatarColor(s.id), width: 34, height: 34, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                       {getInitials(s.prenom, s.nom)}
                     </Avatar>
-                    <Box>
-                      <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: TEXT }}>{s.prenom} {s.nom}</Typography>
-                      <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontSize: "0.8rem" }}>{s.specialisation || "Stagiaire"}</Typography>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: TEXT, whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.2 }}>{s.prenom} {s.nom}</Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: TEXT_LIGHT, fontSize: "0.8rem", whiteSpace: "normal", wordBreak: "break-word" }}>{s.telephone || "—"}</Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: TEXT_LIGHT, fontSize: "0.8rem", whiteSpace: "normal", wordBreak: "break-word" }}>{s.email || "—"}</Typography>
                     </Box>
                   </Box>
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Box>
-                    <Typography variant="body2" sx={{ display: "flex", alignItems: "center", gap: 0.5, color: TEXT, fontSize: "0.85rem" }}>
-                      <PhoneIcon sx={{ fontSize: 14, color: TEXT_LIGHT }} />{s.telephone || "—"}
-                    </Typography>
-                    <Typography variant="body2" sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.5, color: TEXT, fontSize: "0.85rem" }}>
-                      <EmailIcon sx={{ fontSize: 14, color: TEXT_LIGHT }} />{s.email || "—"}
-                    </Typography>
-                  </Box>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 1 }}>
+                  <Typography variant="body2" fontWeight={500} sx={{ color: TEXT, fontSize: "0.85rem", whiteSpace: "normal", wordBreak: "break-word" }}>{s.cin || "—"}</Typography>
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Typography variant="body2" fontWeight={500} sx={{ color: TEXT, fontSize: "0.85rem" }}>{s.cin || "—"}</Typography>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 1 }}>
+                  <Typography variant="body2" fontWeight={500} sx={{ color: TEXT, fontSize: "0.85rem", whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.2 }}>{s.etablissements || "—"}</Typography>
+                  <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontStyle: "italic", fontSize: "0.8rem", whiteSpace: "normal", wordBreak: "break-word" }}>{s.niveau_etudes || ""}</Typography>
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Typography variant="body2" fontWeight={500} sx={{ color: TEXT, fontSize: "0.85rem" }}>{s.etablissements || "—"}</Typography>
-                  <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontStyle: "italic", fontSize: "0.75rem" }}>{s.niveau_etudes || ""}</Typography>
-                </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 1 }}>
                   {s.type_stage ? (
-                    <Chip label={s.type_stage} size="small" sx={{ bgcolor: "#f3e5f5", color: "#7b1fa2", fontWeight: 600, borderRadius: 1.5, fontSize: "0.75rem" }} />
+                    <Chip label={s.type_stage} size="small" sx={{ bgcolor: "#f3e5f5", color: "#7b1fa2", fontWeight: 600, borderRadius: 1.5, fontSize: "0.75rem", height: 24, maxWidth: "100%", "& .MuiChip-label": { whiteSpace: "normal", overflow: "visible", textOverflow: "clip", px: 0.8 } }} />
                   ) : "—"}
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 1 }}>
                   {s.departements ? (
-                    <Chip label={s.departements} size="small" sx={{ bgcolor: BLUE_LIGHT, color: "#1565c0", fontWeight: 600, borderRadius: 1.5, fontSize: "0.75rem" }} />
+                    <Chip label={s.departements} size="small" sx={{ bgcolor: BLUE_LIGHT, color: "#1565c0", fontWeight: 600, borderRadius: 1.5, fontSize: "0.75rem", height: 24, maxWidth: "100%", "& .MuiChip-label": { whiteSpace: "normal", overflow: "visible", textOverflow: "clip", px: 0.8 } }} />
                   ) : "—"}
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Typography variant="body2" sx={{ color: TEXT, fontSize: "0.85rem" }}>{getNomEncadrant(s.encadrant_id)}</Typography>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 1 }}>
+                  <Typography variant="body2" sx={{ color: TEXT, fontSize: "0.85rem", whiteSpace: "normal", wordBreak: "break-word" }}>{getNomEncadrant(s.encadrant_id)}</Typography>
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Typography variant="body2" sx={{ whiteSpace: "pre-line", lineHeight: 1.5, color: TEXT, fontSize: "0.85rem" }}>{formatPeriode(s.date_debut, s.date_fin)}</Typography>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 1 }}>
+                  <Typography variant="body2" sx={{ whiteSpace: "pre-line", lineHeight: 1.3, color: TEXT, fontSize: "0.85rem", wordBreak: "break-word" }}>{formatPeriode(s.date_debut, s.date_fin)}</Typography>
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Chip size="small" {...getChipProps(s.statut)} />
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 1 }}>
+                  <Chip size="small" {...getChipProps(s.statut)} sx={{ fontSize: "0.75rem", height: 24, maxWidth: "100%", "& .MuiChip-label": { whiteSpace: "normal", overflow: "visible", textOverflow: "clip", px: 0.6 } }} />
                 </TableCell>
-                <TableCell align="right" sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
+                <TableCell align="right" sx={{ borderBottom: "1px solid #f1f5f9", py: 1, px: 0.5 }}>
                   <Tooltip title="Modifier">
                     <IconButton size="small" onClick={(e) => handleEdit(s, e)} sx={{ color: PRIMARY }}>
                       <EditIcon fontSize="small" />

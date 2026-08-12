@@ -1,6 +1,8 @@
 
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { authHeaders } from "../auth";
 import {
   Box,
   Grid,
@@ -15,6 +17,11 @@ import {
   Divider,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
   CircularProgress,
   Autocomplete,
   ToggleButton,
@@ -32,6 +39,8 @@ import LockIcon from "@mui/icons-material/Lock";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
+import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
+import MarkEmailUnreadIcon from "@mui/icons-material/MarkEmailUnread";
 
 const API_URL = "http://127.0.0.1:8001";
 
@@ -93,6 +102,7 @@ const CHAMPS_INITIAUX = {
 };
 
 export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState("nouveau");
   const [stagiaires, setStagiaires] = useState([]);
   const [stagiaireSelectionne, setStagiaireSelectionne] = useState(null);
@@ -101,6 +111,7 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
   const [erreurs, setErreurs] = useState({});
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severite: "success" });
+  const [compteCree, setCompteCree] = useState(null);
   const [departements, setDepartements] = useState([]);
   const [encadrants, setEncadrants] = useState([]);
   const [chargementListes, setChargementListes] = useState(true);
@@ -108,9 +119,9 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
   useEffect(() => {
     setChargementListes(true);
     Promise.all([
-      fetch(`${API_URL}/departements`).then((r) => r.json()),
-      fetch(`${API_URL}/encadrants`).then((r) => r.json()),
-      fetch(`${API_URL}/stagiaires`).then((r) => r.json()),
+      fetch(`${API_URL}/departements`, { headers: { ...authHeaders() } }).then((r) => r.json()),
+      fetch(`${API_URL}/encadrants`, { headers: { ...authHeaders() } }).then((r) => r.json()),
+      fetch(`${API_URL}/stagiaires`, { headers: { ...authHeaders() } }).then((r) => r.json()),
     ])
       .then(([deptData, encData, stagData]) => {
         setDepartements(deptData);
@@ -213,7 +224,11 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
     setErreurs({});
     setMotDePasse(genererMotDePasse());
     setStagiaireSelectionne(null);
-    if (onCancel) onCancel();
+    if (onCancel) {
+      onCancel();
+    } else {
+      navigate("/");
+    }
   };
 
   // ✅ FONCTION MODIFIÉE : ajout de l'envoi automatique d'email via Resend
@@ -232,7 +247,7 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
       if (mode === "nouveau") {
         const reponseStagiaire = await fetch(`${API_URL}/stagiaires`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
           body: JSON.stringify({
             prenom: champs.prenom.trim(),
             nom: champs.nom.trim(),
@@ -255,17 +270,22 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
           const texte = await reponseStagiaire.text();
           throw new Error(`Fiche stagiaire (${reponseStagiaire.status}) : ${texte}`);
         }
+        const stagiaireCree = await reponseStagiaire.json();
+        var idStagiairePourCompte = stagiaireCree.id;
+      } else if (mode === "existant") {
+        var idStagiairePourCompte = stagiaireSelectionne?.id ?? null;
       }
 
       // 2. Créer le compte utilisateur (dans les deux modes)
       const reponseUtilisateur = await fetch(`${API_URL}/utilisateurs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
           nom: `${champs.prenom.trim()} ${champs.nom.trim()}`,
           email: champs.email.trim(),
           mot_de_passe_hash: motDePasse,
           role: "stagiaire",
+          stagiaire_id: idStagiairePourCompte,
         }),
       });
       if (!reponseUtilisateur.ok) {
@@ -277,7 +297,7 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
       try {
         const reponseEmail = await fetch(`${API_URL}/envoyer-identifiants`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
           body: JSON.stringify({
             email: champs.email.trim(),
             nom: `${champs.prenom.trim()} ${champs.nom.trim()}`,
@@ -285,35 +305,34 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
           }),
         });
 
+        let emailEnvoye = false;
         if (reponseEmail.ok) {
           console.log("✅ Email d'identifiants envoyé avec succès à", champs.email);
-          setSnackbar({
-            open: true,
-            message: "✅ Compte créé et email d'identifiants envoyé avec succès !",
-            severite: "success",
-          });
+          emailEnvoye = true;
         } else {
           console.warn("⚠️ Compte créé, mais l'email n'a pas pu être envoyé");
-          setSnackbar({
-            open: true,
-            message: "✅ Compte créé, mais l'email n'a pas pu être envoyé (vérifiez la clé API Resend)",
-            severite: "warning",
-          });
         }
+
+        setCompteCree({
+          nom: `${champs.prenom.trim()} ${champs.nom.trim()}`,
+          email: champs.email.trim(),
+          motDePasse: motDePasse,
+          emailEnvoye,
+        });
       } catch (emailError) {
         console.warn("Erreur lors de l'envoi de l'email :", emailError);
-        setSnackbar({
-          open: true,
-          message: "✅ Compte créé, mais erreur lors de l'envoi de l'email",
-          severite: "warning",
+        setCompteCree({
+          nom: `${champs.prenom.trim()} ${champs.nom.trim()}`,
+          email: champs.email.trim(),
+          motDePasse: motDePasse,
+          emailEnvoye: false,
         });
       }
 
-      // Réinitialisation du formulaire
+      // Réinitialisation du formulaire (le dialogue reste ouvert par-dessus)
       setChamps(CHAMPS_INITIAUX);
       setMotDePasse(genererMotDePasse());
       setStagiaireSelectionne(null);
-      if (onSuccess) onSuccess();
     } catch (erreur) {
       setSnackbar({
         open: true,
@@ -322,6 +341,15 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
       });
     } finally {
       setEnvoiEnCours(false);
+    }
+  };
+
+  const fermerDialogueSucces = () => {
+    setCompteCree(null);
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      navigate("/");
     }
   };
 
@@ -779,6 +807,52 @@ export default function CreerCompteStagiaire({ onSuccess, onCancel }) {
           </Box>
         </Box>
       </Paper>
+
+      <Dialog open={Boolean(compteCree)} onClose={fermerDialogueSucces} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: COLORS.bleuFonce, fontWeight: 700 }}>
+          <HowToRegIcon sx={{ color: "#2E7D32" }} />
+          Compte créé avec succès
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Le compte de <strong>{compteCree?.nom}</strong> a été créé.
+          </DialogContentText>
+          <Box sx={{ bgcolor: "#F8FAFC", borderRadius: 2, p: 2, mb: 2 }}>
+            <Typography variant="caption" sx={{ color: COLORS.grisTexte, display: "block" }}>Email</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>{compteCree?.email}</Typography>
+            <Typography variant="caption" sx={{ color: COLORS.grisTexte, display: "block" }}>Mot de passe</Typography>
+            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700, color: COLORS.rouge }}>
+              {compteCree?.motDePasse}
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {compteCree?.emailEnvoye ? (
+              <>
+                <MarkEmailReadIcon sx={{ color: "#2E7D32", fontSize: 20 }} />
+                <Typography variant="body2" sx={{ color: "#2E7D32" }}>
+                  Email d'identifiants envoyé avec succès
+                </Typography>
+              </>
+            ) : (
+              <>
+                <MarkEmailUnreadIcon sx={{ color: "#EF6C00", fontSize: 20 }} />
+                <Typography variant="body2" sx={{ color: "#EF6C00" }}>
+                  Email non envoyé — pensez à transmettre ces identifiants manuellement
+                </Typography>
+              </>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button
+            variant="contained"
+            onClick={fermerDialogueSucces}
+            sx={{ textTransform: "none", borderRadius: "10px", backgroundColor: COLORS.bleuFonce, "&:hover": { backgroundColor: COLORS.bleuFonce2 } }}
+          >
+            Retour au tableau de bord
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}

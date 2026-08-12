@@ -13,6 +13,8 @@ function LayoutEncadrant() {
   const [profil, setProfil] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [messagesNonLus, setMessagesNonLus] = useState(0);
+  const [notificationsNonLues, setNotificationsNonLues] = useState(0);
 
   function rechargerProfil() {
     return fetch(`${API_URL}/moi`, {
@@ -40,6 +42,24 @@ function LayoutEncadrant() {
       .catch(() => setError("Impossible de charger votre profil."));
   }
 
+  function chargerMessagesNonLus() {
+    fetch(`${API_URL}/encadrant/messages/non-lus`, {
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+    })
+      .then((res) => (res.ok ? res.json() : { non_lus: 0 }))
+      .then((data) => setMessagesNonLus(data.non_lus || 0))
+      .catch(() => {});
+  }
+
+  function chargerNotificationsNonLues() {
+    fetch(`${API_URL}/encadrant/notifications/non-lues`, {
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+    })
+      .then((res) => (res.ok ? res.json() : { non_lues: 0 }))
+      .then((data) => setNotificationsNonLues(data.non_lues || 0))
+      .catch(() => {});
+  }
+
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -47,6 +67,8 @@ function LayoutEncadrant() {
       return;
     }
     rechargerProfil().finally(() => setLoading(false));
+    chargerMessagesNonLus();
+    chargerNotificationsNonLues();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -64,6 +86,8 @@ function LayoutEncadrant() {
         nom={profil?.nom}
         role="Encadrant"
         photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined}
+        messagesNonLus={messagesNonLus}
+        notificationsNonLues={notificationsNonLues}
       />
       <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: BACKGROUND }}>
         <Outlet context={{ profil, setProfil, rechargerProfil, erreurProfil: error }} />

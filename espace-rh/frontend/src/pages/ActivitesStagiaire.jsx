@@ -17,6 +17,7 @@ import {
   MenuItem,
   Alert,
   Select,
+  Divider,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -25,8 +26,48 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HistoryIcon from "@mui/icons-material/History";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import { authHeaders } from "../auth";
-import TopBarStagiaire from "../components/TopBarStagiaire";
+function CarteStat({ icon, label, valeur, couleur }) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 3,
+        borderRadius: 4,
+        border: "1px solid #E5E7EB",
+        bgcolor: "#FFFFFF",
+        flex: 1,
+        minWidth: 150,
+        transition: "all 0.25s ease",
+        "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" },
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            bgcolor: `${couleur}20`,
+            color: couleur,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {icon}
+        </Box>
+        <Typography variant="body2" sx={{ color: "#6B7280", fontWeight: 600, textTransform: "uppercase" }}>
+          {label}
+        </Typography>
+      </Box>
+      <Typography variant="h3" sx={{ color: "#1D2B5B", fontWeight: 800, fontSize: "2rem" }}>
+        {valeur}
+      </Typography>
+    </Paper>
+  );
+}
 
 const API_URL = "http://127.0.0.1:8001";
 
@@ -149,6 +190,14 @@ export default function ActivitesStagiaire() {
       return;
     }
 
+    if (echeance) {
+      const aujourdHui = new Date().toISOString().split("T")[0];
+      if (echeance < aujourdHui) {
+        setErreurAjout("L'échéance ne peut pas être antérieure à aujourd'hui.");
+        return;
+      }
+    }
+
     setEnvoiEnCours(true);
     setErreurAjout("");
 
@@ -249,8 +298,7 @@ export default function ActivitesStagiaire() {
   if (loading) {
     return (
       <>
-        <TopBarStagiaire nom={profil?.nom} titre="Mes activités" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
           <CircularProgress sx={{ color: PRIMARY }} />
         </Box>
       </>
@@ -259,15 +307,13 @@ export default function ActivitesStagiaire() {
 
   return (
     <>
-      <TopBarStagiaire nom={profil?.nom} titre="Mes activités" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+<Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3, flexWrap: "wrap", gap: 2 }}>
             <Box>
-              <Typography variant="h6" fontWeight={700} sx={{ color: "#1F2937" }}>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
                 Tableau de suivi
               </Typography>
-              <Typography variant="body2" sx={{ color: TEXT_LIGHT }}>
+              <Typography variant="body2" sx={{ color: TEXT_LIGHT, mt: 0.5 }}>
                 Gérez vos missions et suivez votre progression en temps réel.
               </Typography>
             </Box>
@@ -278,6 +324,14 @@ export default function ActivitesStagiaire() {
             >
               + Ajouter une activité
             </Button>
+          </Box>
+
+          <Divider sx={{ mb: 3 }} />
+
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3 }}>
+            <CarteStat icon={<AssignmentIcon fontSize="small" />} label="Total activites" valeur={activites.length} couleur={PRIMARY} />
+            <CarteStat icon={<CheckCircleIcon fontSize="small" />} label="Terminees" valeur={activites.filter((a) => a.statut === "termine").length} couleur="#2E7D32" />
+            <CarteStat icon={<HourglassEmptyIcon fontSize="small" />} label="En cours" valeur={activites.filter((a) => a.statut === "en_cours").length} couleur="#1565C0" />
           </Box>
 
           {(error || erreurProfil) && (
@@ -634,7 +688,7 @@ export default function ActivitesStagiaire() {
             type="date"
             value={echeance}
             onChange={(e) => setEcheance(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
+            slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: new Date().toISOString().split("T")[0] } }}
             fullWidth
           />
         </DialogContent>

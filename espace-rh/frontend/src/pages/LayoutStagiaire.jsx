@@ -13,6 +13,7 @@ function LayoutStagiaire() {
   const [profil, setProfil] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notificationsNonLues, setNotificationsNonLues] = useState(0);
 
   function rechargerProfil() {
     return fetch(`${API_URL}/moi`, {
@@ -33,6 +34,15 @@ function LayoutStagiaire() {
       .catch(() => setError("Impossible de charger votre profil."));
   }
 
+  function chargerNotificationsNonLues() {
+    fetch(`${API_URL}/moi/notifications/non-lues`, {
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+    })
+      .then((res) => (res.ok ? res.json() : { non_lues: 0 }))
+      .then((data) => setNotificationsNonLues(data.non_lues || 0))
+      .catch(() => {});
+  }
+
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -40,6 +50,7 @@ function LayoutStagiaire() {
       return;
     }
     rechargerProfil().finally(() => setLoading(false));
+    chargerNotificationsNonLues();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -57,6 +68,7 @@ function LayoutStagiaire() {
         nom={profil?.nom}
         role="Stagiaire"
         photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined}
+        notificationsNonLues={notificationsNonLues}
       />
       <Box sx={{ flexGrow: 1, minHeight: "100vh", bgcolor: BACKGROUND }}>
         <Outlet context={{ profil, setProfil, rechargerProfil, erreurProfil: error }} />

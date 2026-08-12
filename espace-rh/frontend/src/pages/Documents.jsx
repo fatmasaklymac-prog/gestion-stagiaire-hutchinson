@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Typography, Box, Chip, Button, Dialog, DialogTitle,
@@ -15,6 +15,9 @@ import DownloadIcon from "@mui/icons-material/Download";
 import LinkIcon from "@mui/icons-material/Link";
 import DescriptionIcon from "@mui/icons-material/Description";
 import CloseIcon from "@mui/icons-material/Close";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { authHeaders } from "../auth";
 
 const API_URL = "http://127.0.0.1:8001";
@@ -43,6 +46,15 @@ const DOCUMENT_TYPES = [
   "Autre",
 ];
 
+// Types que le RH peut emettre et transmettre directement au stagiaire
+const TYPES_DOCUMENTS_RH = [
+  "Attestation de fin de stage",
+  "Lettre d'affectation",
+  "Badge photo",
+  "Fiche sécurité",
+  "Certificat",
+];
+
 const STATUTS = [
   { value: "en_attente", label: "En attente", color: WARNING, bg: ORANGE_LIGHT },
   { value: "valide", label: "Validé", color: SUCCESS, bg: GREEN_LIGHT },
@@ -61,10 +73,12 @@ export default function Documents() {
   const [search, setSearch] = useState("");
 
   const [open, setOpen] = useState(false);
+  const [fichierSelectionne, setFichierSelectionne] = useState(null);
   const [modeEdition, setModeEdition] = useState(false);
   const [idEnCours, setIdEnCours] = useState(null);
   const [errors, setErrors] = useState({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [expandedStagiaire, setExpandedStagiaire] = useState(null);
 
   const [filters, setFilters] = useState({
     stagiaire_id: "",
@@ -90,7 +104,7 @@ export default function Documents() {
     setLoading(true);
     Promise.all([
       fetch(`${API_URL}/stagiaires`).then((r) => r.json()),
-      fetch(`${API_URL}/documents`).then((r) => r.json()),
+      fetch(`${API_URL}/documents`, { headers: authHeaders() }).then((r) => r.json()),
     ])
       .then(([stagData, docData]) => {
         setStagiaires(stagData);
@@ -150,6 +164,7 @@ export default function Documents() {
     const newErrors = {};
     if (!form.stagiaire_id) newErrors.stagiaire_id = true;
     if (!form.type_document) newErrors.type_document = true;
+    if (!modeEdition && !fichierSelectionne) newErrors.fichier = true;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -159,10 +174,11 @@ export default function Documents() {
     setModeEdition(false);
     setIdEnCours(null);
     setErrors({});
+    setFichierSelectionne(null);
     setForm({
       stagiaire_id: "",
-      type_document: "",
-      statut: "en_attente",
+      type_document: TYPES_DOCUMENTS_RH[0],
+      statut: "valide",
       date_document: new Date().toISOString().split("T")[0],
       fichier_url: "",
     });
@@ -173,6 +189,7 @@ export default function Documents() {
     setModeEdition(true);
     setIdEnCours(doc.id);
     setErrors({});
+    setFichierSelectionne(null);
     setForm({
       stagiaire_id: doc.stagiaire_id,
       type_document: doc.type_document,
@@ -186,24 +203,31 @@ export default function Documents() {
   const handleSubmit = () => {
     if (!validateForm()) return;
 
-    const url = modeEdition
-      ? `${API_URL}/documents/${idEnCours}`
-      : `${API_URL}/documents`;
-    const method = modeEdition ? "PUT" : "POST";
+    let fetchPromise;
 
-    const dataToSend = {
-      stagiaire_id: Number(form.stagiaire_id),
-      type_document: form.type_document,
-      statut: form.statut,
-      date_document: form.date_document || null,
-      fichier_url: form.fichier_url?.trim() || null,
-    };
+    if (modeEdition) {
+      // RH : seule la modification du statut est autorisee via cette route
+      fetchPromise = fetch(`${API_URL}/documents/${idEnCours}/statut`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ statut: form.statut }),
+      });
+    } else {
+      // RH : creation avec upload reel du fichier
+      const formData = new FormData();
+      formData.append("stagiaire_id", form.stagiaire_id);
+      formData.append("type_document", form.type_document);
+      if (form.date_document) formData.append("date_document", form.date_document);
+      formData.append("fichier", fichierSelectionne);
 
-    fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify(dataToSend),
-    })
+      fetchPromise = fetch(`${API_URL}/documents/upload-rh`, {
+        method: "POST",
+        headers: { ...authHeaders() },
+        body: formData,
+      });
+    }
+
+    fetchPromise
       .then(async (r) => {
         if (!r.ok) {
           const text = await r.text();
@@ -228,6 +252,48 @@ export default function Documents() {
       .catch((err) => alert("Erreur suppression: " + err.message));
   };
 
+  const handleExport = () => {
+    fetch(`${API_URL}/rh/documents/export`, { headers: authHeaders() })
+      .then(async (r) => {
+        if (!r.ok) {
+          const text = await r.text();
+          throw new Error(text);
+        }
+        return r.blob();
+      })
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `documents_stagiaires_${new Date().toISOString().split("T")[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((err) => {
+        console.error("❌ Erreur export:", err);
+        alert("Erreur lors de l'export: " + err.message);
+      });
+  };
+
+  const handleStatutChange = (docId, nouveauStatut) => {
+    fetch(`${API_URL}/documents/${docId}/statut`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ statut: nouveauStatut }),
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const text = await r.text();
+          throw new Error(text);
+        }
+        return r.json();
+      })
+      .then(() => chargerDonnees())
+      .catch((err) => alert("Erreur: " + err.message));
+  };
+
   // ─── Filter ───
   const filteredDocuments = documents.filter((d) => {
     const searchLower = search.toLowerCase();
@@ -238,6 +304,24 @@ export default function Documents() {
     const matchStatut = !activeFilters.statut || d.statut === activeFilters.statut;
     return matchSearch && matchStagiaire && matchType && matchStatut;
   });
+
+  // ─── Regroupement par stagiaire (une seule ligne par stagiaire) ───
+  const documentsParStagiaire = {};
+  filteredDocuments.forEach((doc) => {
+    if (!documentsParStagiaire[doc.stagiaire_id]) {
+      documentsParStagiaire[doc.stagiaire_id] = [];
+    }
+    documentsParStagiaire[doc.stagiaire_id].push(doc);
+  });
+  const lignesStagiaires = Object.keys(documentsParStagiaire).map((id) => {
+    const docs = documentsParStagiaire[id];
+    const complet = docs.length > 0 && docs.every((d) => d.statut === "valide");
+    return { stagiaire_id: Number(id), docs, complet };
+  });
+
+  const toggleExpand = (id) => {
+    setExpandedStagiaire((prev) => (prev === id ? null : id));
+  };
 
   // ─── Render ───
   return (
@@ -308,6 +392,7 @@ export default function Documents() {
         <Button
           variant="outlined"
           startIcon={<DownloadIcon />}
+          onClick={handleExport}
           sx={{
             borderRadius: 3,
             textTransform: "none",
@@ -457,22 +542,29 @@ export default function Documents() {
           borderRadius: 4,
           border: "1px solid",
           borderColor: BORDER,
-          overflow: "hidden",
+          width: "100%",
+          maxWidth: "100%",
+          overflowX: "hidden",
+          overflowY: "hidden",
           bgcolor: WHITE,
         }}
       >
-        <Table>
+        <Table sx={{ tableLayout: "fixed", width: "100%" }}>
+          <colgroup>
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "18%" }} />
+            <col style={{ width: "8%" }} />
+          </colgroup>
           <TableHead>
             <TableRow sx={{ bgcolor: "#F8FAFC" }}>
-              {["Stagiaire", "Type de document", "Date", "Statut", "Lien fichier"].map((h) => (
+              {["Stagiaire", "Nombre de documents", "Statut global"].map((h) => (
                 <TableCell
                   key={h}
                   sx={{
                     fontWeight: 700,
                     color: PRIMARY,
-                    fontSize: "0.7rem",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
                     borderBottom: "none",
                     py: 1.5,
                   }}
@@ -485,21 +577,18 @@ export default function Documents() {
                 sx={{
                   fontWeight: 700,
                   color: PRIMARY,
-                  fontSize: "0.7rem",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
                   borderBottom: "none",
                   py: 1.5,
                 }}
               >
-                Actions
+                Détails
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredDocuments.length === 0 ? (
+            {lignesStagiaires.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
                   <DescriptionIcon sx={{ fontSize: 48, color: TEXT_LIGHT, mb: 1 }} />
                   <Typography variant="body1" color="text.secondary">
                     Aucun document trouvé
@@ -507,130 +596,212 @@ export default function Documents() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredDocuments.map((doc) => {
-                const status = getStatusConfig(doc.statut);
+              lignesStagiaires.map(({ stagiaire_id, docs, complet }) => {
+                const isOpen = expandedStagiaire === stagiaire_id;
                 return (
-                  <TableRow
-                    key={doc.id}
-                    hover
-                    sx={{
-                      transition: "all 0.2s ease",
-                      "&:hover": { bgcolor: "#F8FAFC" },
-                      "&:last-child td": { borderBottom: "none" },
-                    }}
-                  >
-                    {/* Stagiaire */}
-                    <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                        <Avatar
-                          sx={{
-                            bgcolor: getAvatarColor(doc.stagiaire_id),
-                            width: 44,
-                            height: 44,
-                            fontSize: 15,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {getStagiaireInitials(doc.stagiaire_id)}
-                        </Avatar>
-                        <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: TEXT }}>
-                          {getStagiaireName(doc.stagiaire_id)}
+                  <Fragment key={stagiaire_id}>
+                    <TableRow
+                      hover
+                      onClick={() => toggleExpand(stagiaire_id)}
+                      sx={{
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        "&:hover": { bgcolor: "#F8FAFC" },
+                        "& td": { borderBottom: isOpen ? "none" : "1px solid #f1f5f9" },
+                      }}
+                    >
+                      <TableCell sx={{ py: 1.3, px: 1.5 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                          <Avatar
+                            sx={{
+                              bgcolor: getAvatarColor(stagiaire_id),
+                              width: 36,
+                              height: 36,
+                              fontSize: 13,
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {getStagiaireInitials(stagiaire_id)}
+                          </Avatar>
+                          <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: TEXT, whiteSpace: "nowrap" }}>
+                            {getStagiaireName(stagiaire_id)}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ py: 1.3, px: 1.5 }}>
+                        <Typography variant="body2" sx={{ color: TEXT, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                          {docs.length} document{docs.length > 1 ? "s" : ""}
                         </Typography>
-                      </Box>
-                    </TableCell>
-
-                    {/* Type */}
-                    <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                      <Typography variant="body2" fontWeight={500} sx={{ color: TEXT, fontSize: "0.9rem" }}>
-                        {doc.type_document}
-                      </Typography>
-                    </TableCell>
-
-                    {/* Date */}
-                    <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                      <Typography variant="body2" sx={{ color: TEXT, fontSize: "0.85rem" }}>
-                        {doc.date_document
-                          ? new Date(doc.date_document).toLocaleDateString("fr-FR", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </Typography>
-                    </TableCell>
-
-                    {/* Statut */}
-                    <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                      <Chip
-                        label={status.label}
-                        size="small"
-                        sx={{
-                          bgcolor: status.bg,
-                          color: status.color,
-                          fontWeight: 600,
-                          borderRadius: 2,
-                          fontSize: "0.8rem",
-                          px: 0.5,
-                        }}
-                      />
-                    </TableCell>
-
-                    {/* Lien */}
-                    <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                      {doc.fichier_url ? (
-                        <Button
+                      </TableCell>
+                      <TableCell sx={{ py: 1.3, px: 1.5 }}>
+                        <Chip
+                          label={complet ? "Complet" : "Incomplet"}
                           size="small"
-                          startIcon={<LinkIcon />}
-                          href={doc.fichier_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
                           sx={{
-                            textTransform: "none",
+                            bgcolor: complet ? GREEN_LIGHT : ORANGE_LIGHT,
+                            color: complet ? SUCCESS : WARNING,
                             fontWeight: 600,
-                            color: PRIMARY,
-                            fontSize: "0.8rem",
-                            "&:hover": { bgcolor: BLUE_LIGHT },
+                            borderRadius: 2,
+                            fontSize: "0.75rem",
+                            height: 24,
+                            px: 0.5,
                           }}
-                        >
-                          Voir
-                        </Button>
-                      ) : (
-                        <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontSize: "0.85rem" }}>
-                          —
-                        </Typography>
-                      )}
-                    </TableCell>
-
-                    {/* Actions */}
-                    <TableCell align="right" sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                      {(doc.statut === "valide" || doc.statut === "refuse") ? (
-                        <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontSize: "0.85rem" }}>
-                          —
-                        </Typography>
-                      ) : (
-                        <>
-                          <Tooltip title="Modifier">
-                            <IconButton
-                              size="small"
-                              onClick={() => ouvrirModification(doc)}
-                              sx={{ color: PRIMARY }}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Supprimer">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDelete(doc.id)}
-                              sx={{ color: SECONDARY }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                        />
+                      </TableCell>
+                      <TableCell align="right" sx={{ py: 1.3, px: 1 }}>
+                        <IconButton size="small" sx={{ color: PRIMARY }}>
+                          {isOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={4} sx={{ p: 0, borderBottom: isOpen ? "1px solid #f1f5f9" : "none" }}>
+                        <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                          <Box sx={{ bgcolor: "#FAFBFD", px: 3, py: 2 }}>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  {["Type de document", "Origine", "Date", "Statut", "Lien fichier", "Actions"].map((h) => (
+                                    <TableCell
+                                      key={h}
+                                      sx={{
+                                        fontWeight: 700,
+                                        color: TEXT_LIGHT,
+                                        borderBottom: "1px solid #e5e7eb",
+                                        py: 0.8,
+                                        px: 1,
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {h}
+                                    </TableCell>
+                                  ))}
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {docs.map((doc) => {
+                                  const status = getStatusConfig(doc.statut);
+                                  return (
+                                    <TableRow key={doc.id}>
+                                      <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 0.8, px: 1 }}>
+                                        <Typography variant="body2" fontWeight={500} sx={{ color: TEXT, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                                          {doc.type_document}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 0.8, px: 1 }}>
+                                        {(() => {
+                                          const origineConfig = {
+                                            stagiaire: { label: "Déposé", bg: BLUE_LIGHT, color: PRIMARY },
+                                            rh: { label: "Émis RH", bg: GREEN_LIGHT, color: SUCCESS },
+                                            encadrant: { label: "Encadrant", bg: "#F3E8FF", color: "#7C3AED" },
+                                          };
+                                          const conf = origineConfig[doc.origine] || origineConfig.stagiaire;
+                                          return (
+                                            <Chip
+                                              label={conf.label}
+                                              size="small"
+                                              sx={{
+                                                bgcolor: conf.bg,
+                                                color: conf.color,
+                                                fontWeight: 600,
+                                                fontSize: "0.75rem",
+                                                height: 22,
+                                                borderRadius: 2,
+                                                px: 0.4,
+                                              }}
+                                            />
+                                          );
+                                        })()}
+                                      </TableCell>
+                                      <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 0.8, px: 1 }}>
+                                        <Typography variant="body2" sx={{ color: TEXT, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                                          {doc.date_document
+                                            ? new Date(doc.date_document).toLocaleDateString("fr-FR", {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric",
+                                              })
+                                            : "—"}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 0.8, px: 1 }} onClick={(e) => e.stopPropagation()}>
+                                        <Select
+                                          value={doc.statut || "en_attente"}
+                                          onChange={(e) => handleStatutChange(doc.id, e.target.value)}
+                                          size="small"
+                                          disabled={doc.statut === "valide" || doc.statut === "refuse"}
+                                          sx={{
+                                            fontSize: "0.75rem",
+                                            fontWeight: 600,
+                                            color: status.color,
+                                            bgcolor: status.bg,
+                                            borderRadius: 2,
+                                            minWidth: 100,
+                                            "& .MuiSelect-select": { py: 0.5 },
+                                            "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                                          }}
+                                        >
+                                          {STATUTS.filter((s) => s.value !== "refuse").map((s) => (
+                                            <MenuItem key={s.value} value={s.value}>
+                                              {s.label}
+                                            </MenuItem>
+                                          ))}
+                                        </Select>
+                                      </TableCell>
+                                      <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 0.8, px: 1 }}>
+                                        {doc.fichier_url ? (
+                                          <Button
+                                            size="small"
+                                            startIcon={<LinkIcon sx={{ fontSize: 14 }} />}
+                                            href={doc.fichier_url?.startsWith("http") ? doc.fichier_url : `${API_URL}${doc.fichier_url}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            sx={{
+                                              textTransform: "none",
+                                              fontWeight: 600,
+                                              color: PRIMARY,
+                                              fontSize: "0.7rem",
+                                              minWidth: 0,
+                                              px: 1,
+                                              "&:hover": { bgcolor: BLUE_LIGHT },
+                                            }}
+                                          >
+                                            Voir
+                                          </Button>
+                                        ) : (
+                                          <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontSize: "0.85rem" }}>
+                                            —
+                                          </Typography>
+                                        )}
+                                      </TableCell>
+                                      <TableCell onClick={(e) => e.stopPropagation()} sx={{ py: 0.8, px: 1 }}>
+                                        {(doc.statut === "valide" || doc.statut === "refuse") ? (
+                                          <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontSize: "0.85rem" }}>
+                                            —
+                                          </Typography>
+                                        ) : (
+                                          <Tooltip title="Supprimer">
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => handleDelete(doc.id)}
+                                              sx={{ color: SECONDARY }}
+                                            >
+                                              <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                  </Fragment>
                 );
               })
             )}
@@ -701,7 +872,7 @@ export default function Documents() {
             </Typography>
             <Grid container spacing={2}>
               <Grid size={{ xs: 12 }}>
-                <FormControl fullWidth error={errors.stagiaire_id}>
+                <FormControl fullWidth error={errors.stagiaire_id} disabled={modeEdition}>
                   <InputLabel>Stagiaire *</InputLabel>
                   <Select
                     name="stagiaire_id"
@@ -719,7 +890,7 @@ export default function Documents() {
                 </FormControl>
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <FormControl fullWidth error={errors.type_document}>
+                <FormControl fullWidth error={errors.type_document} disabled={modeEdition}>
                   <InputLabel>Type de document *</InputLabel>
                   <Select
                     name="type_document"
@@ -728,7 +899,7 @@ export default function Documents() {
                     label="Type de document *"
                   >
                     <MenuItem value=""><em>Sélectionner</em></MenuItem>
-                    {DOCUMENT_TYPES.map((t) => (
+                    {(modeEdition ? DOCUMENT_TYPES : TYPES_DOCUMENTS_RH).map((t) => (
                       <MenuItem key={t} value={t}>
                         {t}
                       </MenuItem>
@@ -736,6 +907,7 @@ export default function Documents() {
                   </Select>
                 </FormControl>
               </Grid>
+              {modeEdition && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Statut</InputLabel>
@@ -753,6 +925,7 @@ export default function Documents() {
                   </Select>
                 </FormControl>
               </Grid>
+              )}
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
@@ -761,27 +934,57 @@ export default function Documents() {
                   label="Date du document"
                   value={form.date_document}
                   onChange={handleChange}
+                  disabled={modeEdition}
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  fullWidth
-                  name="fichier_url"
-                  label="Lien du fichier (URL)"
-                  value={form.fichier_url}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LinkIcon sx={{ color: TEXT_LIGHT }} />
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                />
+                {modeEdition ? (
+                  <TextField
+                    fullWidth
+                    name="fichier_url"
+                    label="Lien du fichier"
+                    value={form.fichier_url}
+                    disabled
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LinkIcon sx={{ color: TEXT_LIGHT }} />
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                  />
+                ) : (
+                  <Button
+                    fullWidth
+                    component="label"
+                    variant="outlined"
+                    startIcon={<CloudUploadIcon />}
+                    sx={{
+                      height: 56,
+                      borderRadius: 2,
+                      textTransform: "none",
+                      fontWeight: 600,
+                      justifyContent: "flex-start",
+                      borderColor: errors.fichier ? SECONDARY : BORDER,
+                      color: fichierSelectionne ? TEXT : TEXT_LIGHT,
+                      "&:hover": { borderColor: PRIMARY, bgcolor: BLUE_LIGHT },
+                    }}
+                  >
+                    {fichierSelectionne ? fichierSelectionne.name : "Choisir un fichier *"}
+                    <input
+                      type="file"
+                      hidden
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={(e) => {
+                        setFichierSelectionne(e.target.files?.[0] || null);
+                        if (errors.fichier) setErrors((prev) => ({ ...prev, fichier: false }));
+                      }}
+                    />
+                  </Button>
+                )}
               </Grid>
             </Grid>
           </Box>

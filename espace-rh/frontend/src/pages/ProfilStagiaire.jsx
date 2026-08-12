@@ -4,6 +4,7 @@ import {
   Box,
   Paper,
   Typography,
+  Divider,
   Avatar,
   Button,
   Chip,
@@ -25,8 +26,6 @@ import VerifiedIcon from "@mui/icons-material/Verified";
 import CloseIcon from "@mui/icons-material/Close";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import { authHeaders } from "../auth";
-import TopBarStagiaire from "../components/TopBarStagiaire";
-
 const API_URL = "http://127.0.0.1:8001";
 
 const PRIMARY = "#1D2B5B";
@@ -351,9 +350,43 @@ function ProfilStagiaire() {
 
   return (
     <>
-      <TopBarStagiaire nom={profil?.nom} titre="Mon Profil" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+<Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
+        <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 2, mb: 2 }}>
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
+              Mon profil
+            </Typography>
+            <Typography sx={{ color: TEXT_LIGHT, mt: 0.5 }}>
+              Consultez et gerez vos informations personnelles et de stage.
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              startIcon={<LockResetIcon />}
+              onClick={() => {
+                setErreurMdp("");
+                setSuccesMdp("");
+                setAncienMdp("");
+                setNouveauMdp("");
+                setConfirmationMdp("");
+                setModalMdpOuvert(true);
+              }}
+              sx={{ bgcolor: SECONDARY, textTransform: "none", fontWeight: 700, borderRadius: 2, "&:hover": { bgcolor: "#c4171d" } }}
+            >
+              Changer le mot de passe
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={ouvrirModalEdit}
+              sx={{ bgcolor: PRIMARY, textTransform: "none", borderRadius: 2, "&:hover": { bgcolor: PRIMARY } }}
+            >
+              Modifier le profil
+            </Button>
+          </Box>
+        </Box>
+        <Divider sx={{ mb: 3 }} />
         {(error || erreurProfil) && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error || erreurProfil}
@@ -426,14 +459,6 @@ function ProfilStagiaire() {
                   </Typography>
                 </Box>
               </Box>
-              <Button
-                variant="contained"
-                startIcon={<EditIcon />}
-                onClick={ouvrirModalEdit}
-                sx={{ bgcolor: PRIMARY, textTransform: "none", borderRadius: 2, "&:hover": { bgcolor: PRIMARY } }}
-              >
-                Modifier le profil
-              </Button>
             </Box>
           </Paper>
 
@@ -584,36 +609,6 @@ function ProfilStagiaire() {
             </Box>
           </Paper>
 
-          {/* Changer le mot de passe */}
-          <Box sx={{ textAlign: "center" }}>
-            <Button
-              startIcon={<LockResetIcon />}
-              onClick={() => {
-                setErreurMdp("");
-                setSuccesMdp("");
-                setAncienMdp("");
-                setNouveauMdp("");
-                setConfirmationMdp("");
-                setModalMdpOuvert(true);
-              }}
-              variant="outlined"
-              variant="contained"
-              sx={{
-                bgcolor: SECONDARY,
-                borderRadius: 3,
-                textTransform: "none",
-                fontWeight: 700,
-                px: 3,
-                boxShadow: "0 8px 20px rgba(227,30,36,.25)",
-                "&:hover": {
-                  bgcolor: "#c4171d",
-                  transform: "translateY(-2px)",
-                },
-              }}
-            >
-              Changer le mot de passe
-            </Button>
-          </Box>
       </Box>
 
       {/* Modale : modifier le profil */}

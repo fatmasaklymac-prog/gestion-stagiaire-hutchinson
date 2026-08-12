@@ -101,8 +101,14 @@ function Dashboard() {
   const [filterUniversite, setFilterUniversite] = useState("");
   const [filterTuteur, setFilterTuteur] = useState("");
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [profil, setProfil] = useState(null);
 
   useEffect(() => {
+    fetch(`${API_URL}/moi`, { headers: authHeaders() })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => setProfil(data))
+      .catch(() => setProfil(null));
+
     fetch(`${API_URL}/stagiaires`)
       .then((r) => r.json())
       .then((data) => {
@@ -243,22 +249,43 @@ function Dashboard() {
   };
 
   const carteStat = (titre, valeur, Icone, couleurIcone, couleurFond, badge) => (
-    <Paper elevation={0} sx={{ ...CARD_SX, position: "relative", p: 2.75, pl: 3, overflow: "hidden", height: "100%", transition: "box-shadow 0.2s ease, border-color 0.2s ease", "&:hover": { boxShadow: "0 4px 8px rgba(16,24,64,0.06), 0 12px 24px -10px rgba(16,24,64,0.14)", borderColor: `${couleurIcone}40` } }}>
-      <Box sx={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 3, bgcolor: couleurIcone }} />
+    <Paper
+      elevation={0}
+      sx={{
+        p: 3,
+        borderRadius: 4,
+        border: `1px solid ${BORDER}`,
+        bgcolor: WHITE,
+        height: "100%",
+        transition: "all 0.25s ease",
+        "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" },
+      }}
+    >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-        <Box sx={{ width: 44, height: 44, borderRadius: 2.5, display: "flex", alignItems: "center", justifyContent: "center", bgcolor: couleurFond, color: couleurIcone }}>
-          <Icone sx={{ fontSize: 22 }} />
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: couleurFond,
+            color: couleurIcone,
+          }}
+        >
+          <Icone sx={{ fontSize: 24 }} />
         </Box>
         {badge && (
-          <Typography variant="caption" sx={{ color: SUCCESS, fontWeight: 700, bgcolor: GREEN_LIGHT, px: 1.1, py: 0.3, borderRadius: 1.5, fontSize: "0.72rem" }}>
+          <Typography variant="caption" sx={{ color: SUCCESS, fontWeight: 700, bgcolor: GREEN_LIGHT, px: 1.2, py: 0.4, borderRadius: 1.5, fontSize: "0.75rem" }}>
             {badge}
           </Typography>
         )}
       </Box>
-      <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.68rem", mb: 0.5 }}>
+      <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.7rem", mb: 1 }}>
         {titre}
       </Typography>
-      <Typography variant="h3" sx={{ fontWeight: 800, color: PRIMARY, lineHeight: 1, fontSize: "1.9rem", letterSpacing: -0.5 }}>
+      <Typography variant="h3" sx={{ fontWeight: 700, color: PRIMARY, lineHeight: 1, fontSize: "2rem" }}>
         {(valeur ?? 0).toLocaleString("fr-FR")}
       </Typography>
     </Paper>
@@ -351,16 +378,16 @@ function Dashboard() {
       {/* En-tête */}
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "space-between", alignItems: "flex-start", mb: 3, pb: 3, borderBottom: "1px solid", borderColor: BORDER }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, mb: 0.4, fontSize: "1.6rem", letterSpacing: -0.5 }}>Tableau de Bord RH</Typography>
-          <Typography sx={{ color: TEXT_LIGHT, fontSize: 14 }}>Gestion centralisée des stagiaires Hutchinson</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, mb: 0.4, fontSize: "1.6rem", letterSpacing: -0.5 }}>Bienvenue, {profil?.nom || "—"} !</Typography>
+          <Typography sx={{ color: TEXT_LIGHT, fontSize: 14 }}>Voici un aperçu de l'activité de vos stagiaires aujourd'hui.</Typography>
         </Box>
         <Stack direction="row" spacing={1.25} useFlexGap sx={{ flexWrap: "wrap" }}>
           {/* BOUTON IMPORTER FONCTIONNEL */}
-          <Button variant="outlined" startIcon={<UploadIcon />} onClick={handleImportClick} sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 600, borderColor: BORDER, color: TEXT, bgcolor: WHITE, "&:hover": { borderColor: PRIMARY, color: PRIMARY, bgcolor: BLUE_LIGHT } }}>Importer Excel</Button>
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" style={{ display: "none" }} />
           
           {/* BOUTON EXPORTER FONCTIONNEL */}
-          <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={handleExport} sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 600, borderColor: BORDER, color: TEXT, bgcolor: WHITE, "&:hover": { borderColor: PRIMARY, color: PRIMARY, bgcolor: BLUE_LIGHT } }}>Exporter</Button>
+          <Button variant="outlined" startIcon={<UploadIcon />} onClick={handleImportClick} sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 600, borderColor: BORDER, color: TEXT, bgcolor: WHITE, "&:hover": { borderColor: PRIMARY, color: PRIMARY, bgcolor: BLUE_LIGHT } }}>Importer Excel</Button>
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" style={{ display: "none" }} />
+          <Button variant="contained" startIcon={<FileDownloadIcon />} onClick={handleExport} sx={{ borderRadius: 2.5, textTransform: "none", fontWeight: 600, bgcolor: PRIMARY, color: WHITE, "&:hover": { bgcolor: "#0F1B3D" } }}>Exporter</Button>
           
           <Button variant="contained" startIcon={<PersonAddAlt1Icon />} onClick={() => navigate("/creer-compte-stagiaire")} sx={{ bgcolor: SECONDARY, borderRadius: 2.5, textTransform: "none", fontWeight: 700, px: 2.5, boxShadow: "0 6px 16px rgba(227,30,36,.22)", "&:hover": { bgcolor: "#c4171d", boxShadow: "0 8px 20px rgba(227,30,36,.3)" } }}>Créer un compte stagiaire</Button>
         </Stack>

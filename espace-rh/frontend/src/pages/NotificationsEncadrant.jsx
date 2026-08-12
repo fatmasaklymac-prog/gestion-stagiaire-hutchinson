@@ -12,6 +12,7 @@ import {
   Badge,
   Tooltip,
   Chip,
+  Divider,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
@@ -326,49 +327,11 @@ function NotificationsEncadrant() {
 
   return (
     <Box sx={{ bgcolor: BACKGROUND, minHeight: "100%", position: "relative" }}>
-      {/* Barre du haut */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          p: { xs: 2, md: 3 },
-          bgcolor: WHITE,
-          borderBottom: `1px solid ${BORDER}`,
-        }}
-      >
-        <TextField
-          size="small"
-          placeholder="Rechercher une notification..."
-          value={rechercheTexte}
-          onChange={(e) => setRechercheTexte(e.target.value)}
-          sx={{ width: { xs: "100%", sm: 360 }, "& .MuiOutlinedInput-root": { borderRadius: 3, bgcolor: BACKGROUND } }}
-          slotProps={{
-  input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: TEXT_LIGHT, fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            },
-          }}
-        />
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton>
-            <Badge badgeContent={nonLues} color="error">
-              <NotificationsNoneIcon sx={{ color: PRIMARY }} />
-            </Badge>
-          </IconButton>
-          <IconButton>
-            <AccountCircleIcon sx={{ color: TEXT_LIGHT, fontSize: 32 }} />
-          </IconButton>
-        </Box>
-      </Box>
 
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3, flexWrap: "wrap", gap: 2 }}>
           <Box>
-            <Typography variant="h5" fontWeight={800} sx={{ color: PRIMARY }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
               Centre de notifications
             </Typography>
             <Typography variant="body2" sx={{ color: TEXT_LIGHT }}>
@@ -408,6 +371,8 @@ function NotificationsEncadrant() {
             </Button>
           </Box>
         </Box>
+
+        <Divider sx={{ mb: 3 }} />
 
         {(error || erreurProfil) && (
           <Alert severity="error" sx={{ mb: 3 }}>

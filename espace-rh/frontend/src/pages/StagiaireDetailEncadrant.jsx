@@ -6,6 +6,7 @@ import {
   Typography,
   Avatar,
   Chip,
+  Divider,
   LinearProgress,
   CircularProgress,
   Alert,
@@ -35,7 +36,6 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AddIcon from "@mui/icons-material/Add";
 import SendIcon from "@mui/icons-material/Send";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { authHeaders } from "../auth";
 
 const API_URL = "http://127.0.0.1:8001";
@@ -152,7 +152,6 @@ function DocumentRow({ doc }) {
 function StagiaireDetailEncadrant() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const inputFichierRef = useRef(null);
 
   const [stagiaire, setStagiaire] = useState(null);
   const [documents, setDocuments] = useState([]);
@@ -166,11 +165,6 @@ function StagiaireDetailEncadrant() {
   const [envoiCommentaire, setEnvoiCommentaire] = useState(false);
 
   // --- Ajouter un document ---
-  const [dialogDocOuvert, setDialogDocOuvert] = useState(false);
-  const [typeDocument, setTypeDocument] = useState("convention");
-  const [fichierChoisi, setFichierChoisi] = useState(null);
-  const [envoiDocument, setEnvoiDocument] = useState(false);
-  const [erreurDocument, setErreurDocument] = useState("");
 
   // --- Modifier les dates ---
   const [dialogDatesOuvert, setDialogDatesOuvert] = useState(false);
@@ -178,6 +172,7 @@ function StagiaireDetailEncadrant() {
   const [dateFinForm, setDateFinForm] = useState("");
   const [envoiDates, setEnvoiDates] = useState(false);
   const [erreurDates, setErreurDates] = useState("");
+
 
   // --- Signaler un incident ---
   const [dialogIncidentOuvert, setDialogIncidentOuvert] = useState(false);
@@ -258,45 +253,6 @@ function StagiaireDetailEncadrant() {
       })
       .catch(() => setError("Impossible d'envoyer le commentaire."))
       .finally(() => setEnvoiCommentaire(false));
-  }
-
-  function ouvrirDialogDoc() {
-    setTypeDocument("convention");
-    setFichierChoisi(null);
-    setErreurDocument("");
-    setDialogDocOuvert(true);
-  }
-
-  function envoyerDocument() {
-    if (!fichierChoisi) {
-      setErreurDocument("Sélectionne un fichier.");
-      return;
-    }
-    setEnvoiDocument(true);
-    setErreurDocument("");
-    const formData = new FormData();
-    formData.append("type_document", typeDocument);
-    formData.append("fichier", fichierChoisi);
-
-    fetch(`${API_URL}/moi/mes-stagiaires/${id}/documents/upload`, {
-      method: "POST",
-      headers: { ...authHeaders() },
-      body: formData,
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.detail || "Erreur lors de l'envoi");
-        }
-        return res.json();
-      })
-      .then((docCree) => {
-        setDocuments((precedent) => [docCree, ...precedent]);
-        setDialogDocOuvert(false);
-        setSuccesGlobal("Document ajouté avec succès.");
-      })
-      .catch((err) => setErreurDocument(err.message || "Impossible d'envoyer le document."))
-      .finally(() => setEnvoiDocument(false));
   }
 
   function ouvrirDialogDates() {
@@ -492,7 +448,7 @@ function StagiaireDetailEncadrant() {
         </Box>
       </Box>
 
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
         {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
         {/* En-tête profil */}
@@ -541,6 +497,8 @@ function StagiaireDetailEncadrant() {
           </Box>
         </Box>
 
+        <Divider sx={{ mb: 3 }} />
+
         <Box sx={{ display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: 3 }}>
           {/* Colonne principale */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3, flex: 2, minWidth: 320 }}>
@@ -550,13 +508,6 @@ function StagiaireDetailEncadrant() {
                 <Typography variant="h6" sx={{ fontWeight: 700, color: PRIMARY, fontSize: "1.05rem" }}>
                   Informations générales
                 </Typography>
-                <Tooltip title="Bientôt disponible">
-                  <span>
-                    <IconButton size="small" disabled>
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
               </Box>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                 <Box sx={{ flex: "1 1 220px" }}>
@@ -689,15 +640,6 @@ function StagiaireDetailEncadrant() {
                   ))}
                 </Box>
               )}
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={ouvrirDialogDoc}
-                sx={{ borderColor: BORDER, color: PRIMARY, borderRadius: 2, textTransform: "none", fontWeight: 700 }}
-              >
-                Ajouter un document
-              </Button>
             </Paper>
 
             <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: PRIMARY }}>
@@ -737,54 +679,6 @@ function StagiaireDetailEncadrant() {
       </Box>
 
       {/* Dialog : Ajouter un document */}
-      <Dialog open={dialogDocOuvert} onClose={() => !envoiDocument && setDialogDocOuvert(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 700, color: PRIMARY }}>Ajouter un document</DialogTitle>
-        <DialogContent>
-          {erreurDocument && <Alert severity="error" sx={{ mb: 2 }}>{erreurDocument}</Alert>}
-          <TextField
-            select
-            fullWidth
-            label="Type de document"
-            value={typeDocument}
-            onChange={(e) => setTypeDocument(e.target.value)}
-            sx={{ mb: 2, mt: 1 }}
-          >
-            {TYPES_DOCUMENTS.map((t) => (
-              <MenuItem key={t.valeur} value={t.valeur}>{t.label}</MenuItem>
-            ))}
-          </TextField>
-
-          <Button
-            fullWidth
-            variant="outlined"
-            component="label"
-            startIcon={<UploadFileIcon />}
-            sx={{ borderColor: BORDER, color: PRIMARY, borderRadius: 2, textTransform: "none", fontWeight: 700, py: 1.2 }}
-          >
-            {fichierChoisi ? fichierChoisi.name : "Choisir un fichier (PDF, JPG, PNG, DOC)"}
-            <input
-              ref={inputFichierRef}
-              type="file"
-              hidden
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-              onChange={(e) => setFichierChoisi(e.target.files?.[0] || null)}
-            />
-          </Button>
-        </DialogContent>
-        <DialogActions sx={{ p: 2.5, pt: 1 }}>
-          <Button onClick={() => setDialogDocOuvert(false)} disabled={envoiDocument} sx={{ color: TEXT_LIGHT, textTransform: "none", fontWeight: 700 }}>
-            Annuler
-          </Button>
-          <Button
-            variant="contained"
-            onClick={envoyerDocument}
-            disabled={envoiDocument}
-            sx={{ bgcolor: PRIMARY, "&:hover": { bgcolor: "#16234A" }, borderRadius: 2, textTransform: "none", fontWeight: 700 }}
-          >
-            {envoiDocument ? "Envoi..." : "Ajouter"}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Dialog : Modifier les dates */}
       <Dialog open={dialogDatesOuvert} onClose={() => !envoiDates && setDialogDatesOuvert(false)} fullWidth maxWidth="xs">

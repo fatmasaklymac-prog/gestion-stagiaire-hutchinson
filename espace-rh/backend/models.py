@@ -58,7 +58,7 @@ class Stagiaire(Base):
     ecole = Column(String(100))
     niveau_etudes = Column(String(50))
     specialisation = Column(String(150))
-    type_stage = Column(String(20))
+    type_stage = Column(String(100))
     departement_id = Column(Integer, ForeignKey("departements.id"))
     encadrant_id = Column(Integer, ForeignKey("encadrants.id"))
     date_debut = Column(Date, nullable=False)
@@ -78,6 +78,8 @@ class Document(Base):
     date_document = Column(Date)
     fichier_url = Column(String(255))
     taille_octets = Column(Integer)
+    commentaire = Column(String(500))
+    origine = Column(String(20), default="stagiaire")
     
 class ConfirmationEvenement(Base):
     __tablename__ = "confirmations_evenement"
@@ -248,7 +250,7 @@ class DemandeStage(Base):
     specialisation = Column(String(150), nullable=False)
 
     # Informations sur le stage souhaité
-    type_stage = Column(String(20), nullable=False)
+    type_stage = Column(String(100), nullable=False)
     departements = Column(String(100), nullable=False)
     date_debut = Column(String(20), nullable=False)
     date_fin = Column(String(20), nullable=False)

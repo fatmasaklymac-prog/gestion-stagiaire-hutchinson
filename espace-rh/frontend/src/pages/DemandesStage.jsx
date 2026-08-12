@@ -281,16 +281,25 @@ function DemandesStage() {
         </Box>
       )}
 
-      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: "1px solid", borderColor: BORDER, overflow: "hidden", bgcolor: WHITE }}>
-        <Table>
+      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: "1px solid", borderColor: BORDER, width: "100%", maxWidth: "100%", overflowX: "hidden", overflowY: "hidden", bgcolor: WHITE }}>
+        <Table sx={{ tableLayout: "fixed", width: "100%" }}>
+          <colgroup>
+            <col style={{ width: "24%" }} />
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "8%" }} />
+          </colgroup>
           <TableHead>
             <TableRow sx={{ bgcolor: "#F8FAFC" }}>
-              {["Candidat", "Contact", "Établissement / Niveau", "Type de stage", "Département souhaité", "Dates souhaitées", "Statut"].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, color: PRIMARY, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "none", py: 1.5 }}>
+              {["Candidat", "Établissement / Niveau", "Type de stage", "Département", "Dates", "Statut"].map((h) => (
+                <TableCell key={h} sx={{ fontWeight: 700, color: PRIMARY, borderBottom: "none", py: 1, px: 1.5, whiteSpace: "nowrap" }}>
                   {h}
                 </TableCell>
               ))}
-              <TableCell align="right" sx={{ fontWeight: 700, color: PRIMARY, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "none", py: 1.5 }}>
+              <TableCell align="right" sx={{ fontWeight: 700, color: PRIMARY, borderBottom: "none", py: 1, px: 1.5 }}>
                 Actions
               </TableCell>
             </TableRow>
@@ -299,45 +308,38 @@ function DemandesStage() {
             {filteredDemandes.map((d) => (
               <TableRow key={d.id} hover onClick={() => ouvrirDetail(d)}
                 sx={{ cursor: "pointer", transition: "all 0.2s ease", "&:hover": { bgcolor: "#F8FAFC" }, "&:last-child td": { borderBottom: "none" } }}>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Avatar sx={{ bgcolor: getAvatarColor(d.id), width: 44, height: 44, fontSize: 15, fontWeight: 700 }}>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1.2, px: 1.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                    <Avatar sx={{ bgcolor: getAvatarColor(d.id), width: 34, height: 34, fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                       {getInitials(d.prenom, d.nom)}
                     </Avatar>
-                    <Box>
-                      <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: TEXT }}>{d.prenom} {d.nom}</Typography>
-                      <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontSize: "0.8rem" }}>Dossier n°{d.id}</Typography>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: TEXT, whiteSpace: "nowrap" }}>{d.prenom} {d.nom}</Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: TEXT_LIGHT, fontSize: "0.8rem", whiteSpace: "nowrap" }}>{d.email || "—"}</Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: TEXT_LIGHT, fontSize: "0.8rem", whiteSpace: "nowrap" }}>{d.telephone || "—"}</Typography>
                     </Box>
                   </Box>
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Typography variant="body2" sx={{ display: "flex", alignItems: "center", gap: 0.5, color: TEXT, fontSize: "0.85rem" }}>
-                    <EmailIcon sx={{ fontSize: 14, color: TEXT_LIGHT }} />{d.email || "—"}
-                  </Typography>
-                  <Typography variant="body2" sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.5, color: TEXT, fontSize: "0.85rem" }}>
-                    <PhoneIcon sx={{ fontSize: 14, color: TEXT_LIGHT }} />{d.telephone || "—"}
-                  </Typography>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1.2, px: 1.5 }}>
+                  <Typography variant="body2" fontWeight={500} sx={{ color: TEXT, fontSize: "0.85rem", whiteSpace: "nowrap" }}>{d.etablissements}</Typography>
+                  <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontStyle: "italic", fontSize: "0.8rem", whiteSpace: "nowrap" }}>{d.niveau_etudes}</Typography>
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Typography variant="body2" fontWeight={500} sx={{ color: TEXT, fontSize: "0.85rem" }}>{d.etablissements}</Typography>
-                  <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontStyle: "italic", fontSize: "0.75rem" }}>{d.niveau_etudes}</Typography>
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1.2, px: 1.5 }}>
+                  <Chip label={d.type_stage} size="small" sx={{ bgcolor: PURPLE_LIGHT, color: "#7b1fa2", fontWeight: 600, borderRadius: 1.5, fontSize: "0.75rem", height: 24 }} />
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Chip label={d.type_stage} size="small" sx={{ bgcolor: PURPLE_LIGHT, color: "#7b1fa2", fontWeight: 600, borderRadius: 1.5, fontSize: "0.75rem" }} />
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1.2, px: 1.5 }}>
+                  <Chip label={d.departements} size="small" sx={{ bgcolor: BLUE_LIGHT, color: "#1565c0", fontWeight: 600, borderRadius: 1.5, fontSize: "0.75rem", height: 24 }} />
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Chip label={d.departements} size="small" sx={{ bgcolor: BLUE_LIGHT, color: "#1565c0", fontWeight: 600, borderRadius: 1.5, fontSize: "0.75rem" }} />
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1.2, px: 1.5 }}>
+                  <Typography variant="body2" sx={{ color: TEXT, fontSize: "0.85rem", whiteSpace: "normal", wordBreak: "break-word", lineHeight: 1.3 }}>{d.date_debut} → {d.date_fin}</Typography>
                 </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Typography variant="body2" sx={{ color: TEXT, fontSize: "0.85rem" }}>{d.date_debut} → {d.date_fin}</Typography>
-                </TableCell>
-                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
-                  <Chip size="small" {...getChipProps(d.statut)} />
+                <TableCell sx={{ borderBottom: "1px solid #f1f5f9", py: 1.2, px: 1.5 }}>
+                  <Chip size="small" {...getChipProps(d.statut)} sx={{ fontSize: "0.75rem", height: 24 }} />
                   {d.stagiaire_id_cree && (
-                    <Chip size="small" icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} label="Converti" sx={{ ml: 0.5, bgcolor: GREEN_LIGHT, color: SUCCESS, fontWeight: 600 }} />
+                    <Chip size="small" icon={<CheckCircleIcon sx={{ fontSize: 12 }} />} label="Converti" sx={{ ml: 0.5, bgcolor: GREEN_LIGHT, color: SUCCESS, fontWeight: 600, fontSize: "0.75rem", height: 24 }} />
                   )}
                 </TableCell>
-                <TableCell align="right" sx={{ borderBottom: "1px solid #f1f5f9", py: 2 }}>
+                <TableCell align="right" sx={{ borderBottom: "1px solid #f1f5f9", py: 1.2, px: 1 }}>
                   <Tooltip title="Voir / Traiter">
                     <IconButton size="small" onClick={() => ouvrirDetail(d)} sx={{ color: PRIMARY }}>
                       <VisibilityIcon fontSize="small" />

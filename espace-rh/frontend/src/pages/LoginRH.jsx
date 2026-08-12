@@ -19,6 +19,8 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import BadgeIcon from "@mui/icons-material/Badge";
+import ShaderBackground from "../components/ShaderBackground";
+import { rhFragmentShader } from "../shaders/rhShader";
 
 const API_URL = "http://127.0.0.1:8001";
 
@@ -67,7 +69,7 @@ export default function LoginRH() {
       });
       const profil = await resProfil.json();
 
-      if (!resProfil.ok || profil.role !== "admin_rh") {
+      if (!resProfil.ok || (profil.role !== "admin_rh" && profil.role !== "rh")) {
         clearToken();
         setError("Ce compte n'est pas un compte Ressources Humaines.");
         setLoading(false);
@@ -104,6 +106,7 @@ export default function LoginRH() {
           bgcolor: "#1D2B5B",
         }}
       >
+        <ShaderBackground fragmentShader={rhFragmentShader} />
         <Box sx={{ position: "relative", zIndex: 1, p: { xs: 4, md: 6 } }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Box

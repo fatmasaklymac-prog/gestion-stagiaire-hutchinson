@@ -431,47 +431,11 @@ function ReunionsEncadrant() {
 
   return (
     <Box sx={{ bgcolor: BACKGROUND, minHeight: "100%" }}>
-      {/* Barre du haut */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          p: { xs: 2, md: 3 },
-          bgcolor: WHITE,
-          borderBottom: `1px solid ${BORDER}`,
-        }}
-      >
-        <TextField
-          size="small"
-          placeholder="Rechercher un stagiaire ou une réunion..."
-          value={rechercheTexte}
-          onChange={(e) => setRechercheTexte(e.target.value)}
-          sx={{ width: { xs: "100%", sm: 360 }, "& .MuiOutlinedInput-root": { borderRadius: 3, bgcolor: BACKGROUND } }}
-          slotProps={{
-  input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: TEXT_LIGHT, fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            },
-          }}
-        />
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <IconButton>
-            <NotificationsNoneIcon sx={{ color: PRIMARY }} />
-          </IconButton>
-          <IconButton>
-            <AccountCircleIcon sx={{ color: TEXT_LIGHT, fontSize: 32 }} />
-          </IconButton>
-        </Box>
-      </Box>
 
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3, flexWrap: "wrap", gap: 2 }}>
           <Box>
-            <Typography variant="h5" fontWeight={800} sx={{ color: PRIMARY }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
               Réunions
             </Typography>
             <Typography variant="body2" sx={{ color: TEXT_LIGHT }}>
@@ -494,6 +458,8 @@ function ReunionsEncadrant() {
             Nouvelle réunion
           </Button>
         </Box>
+
+        <Divider sx={{ mb: 3 }} />
 
         {(error || erreurProfil) && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -921,38 +887,38 @@ function CarteStat({ titre, valeur, icon: Icon, bg, color }) {
   return (
     <Box
       sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1.5,
-        p: 2,
-        bgcolor: WHITE,
-        borderRadius: 3,
+        p: 3,
+        borderRadius: 4,
         border: `1px solid ${BORDER}`,
+        bgcolor: WHITE,
+        flex: 1,
+        minWidth: 220,
+        transition: "all 0.25s ease",
+        "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" },
       }}
     >
-      <Box
-        sx={{
-          width: 42,
-          height: 42,
-          borderRadius: 2,
-          bgcolor: bg,
-          color,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon fontSize="small" />
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: bg,
+            color,
+          }}
+        >
+          <Icon sx={{ fontSize: 24 }} />
+        </Box>
       </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontWeight: 700, display: "block", lineHeight: 1.2 }}>
-          {titre.toUpperCase()}
-        </Typography>
-        <Typography variant="h6" fontWeight={800} sx={{ color: "#1F2937" }}>
-          {valeur}
-        </Typography>
-      </Box>
+      <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.7rem", mb: 1 }}>
+        {titre}
+      </Typography>
+      <Typography variant="h3" sx={{ fontWeight: 700, color: PRIMARY, lineHeight: 1, fontSize: "2rem" }}>
+        {valeur}
+      </Typography>
     </Box>
   );
 }

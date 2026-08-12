@@ -19,6 +19,8 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import SchoolIcon from "@mui/icons-material/School";
+import ShaderBackground from "../components/ShaderBackground";
+import { stagiaireFragmentShader } from "../shaders/stagiaireShader";
 
 const API_URL = "http://127.0.0.1:8001";
 const ACCENT = "#1D2B5B";
@@ -93,6 +95,7 @@ export default function LoginStagiaire() {
           bgcolor: ACCENT,
         }}
       >
+        <ShaderBackground fragmentShader={stagiaireFragmentShader} />
         <Box sx={{ position: "relative", zIndex: 1, p: { xs: 4, md: 6 } }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Box

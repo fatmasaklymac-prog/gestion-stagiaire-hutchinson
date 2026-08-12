@@ -33,8 +33,6 @@ import AddIcon from "@mui/icons-material/Add";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import EventIcon from "@mui/icons-material/Event";
 import { clearToken, authHeaders } from "../auth";
-import TopBarStagiaire from "../components/TopBarStagiaire";
-
 const API_URL = "http://127.0.0.1:8001";
 
 // === COULEURS (alignées sur le Dashboard RH de la binôme) ===
@@ -457,8 +455,7 @@ function DashboardStagiaire() {
   if (loading) {
     return (
       <>
-        <TopBarStagiaire nom={profil?.nom} photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
           <CircularProgress sx={{ color: PRIMARY }} />
         </Box>
       </>
@@ -475,10 +472,8 @@ function DashboardStagiaire() {
 
   return (
     <>
-      <TopBarStagiaire nom={profil?.nom} photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3, flexWrap: "wrap", gap: 2 }}>
+<Box sx={{ bgcolor: "#F5F7FB", minHeight: "100vh", p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3, pb: 3, borderBottom: "1px solid", borderColor: "#E5E7EB", flexWrap: "wrap", gap: 2 }}>
             <Box>
               <Typography variant="h4" sx={{ fontWeight: 700, color: PRIMARY, mb: 0.5, fontSize: "1.75rem" }}>
                 Bienvenue, {profil?.nom || "—"} !

@@ -33,9 +33,8 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import RoomIcon from "@mui/icons-material/Room";
 import StarIcon from "@mui/icons-material/Star";
+import GroupsIcon from "@mui/icons-material/Groups";
 import { authHeaders } from "../auth";
-import TopBarStagiaire from "../components/TopBarStagiaire";
-
 const API_URL = "http://127.0.0.1:8001";
 
 const PRIMARY = "#1D2B5B";
@@ -309,8 +308,7 @@ export default function EncadrantStagiaire() {
   if (loading) {
     return (
       <>
-        <TopBarStagiaire nom={profil?.nom} titre="Mon encadrant" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
           <CircularProgress sx={{ color: PRIMARY }} />
         </Box>
       </>
@@ -319,9 +317,41 @@ export default function EncadrantStagiaire() {
 
   return (
     <>
-      <TopBarStagiaire nom={profil?.nom} titre="Mon encadrant" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
+<Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2, mb: 3 }}>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
+                Mon encadrant
+              </Typography>
+              <Typography variant="body2" sx={{ color: TEXT_LIGHT, mt: 0.5 }}>
+                Consultez les informations et coordonnees de votre encadrant.
+              </Typography>
+            </Box>
+            {!erreurEncadrant && encadrant && (
+              <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<SendIcon fontSize="small" />}
+                  onClick={() => ouvrirModalMessage("message")}
+                  sx={{ bgcolor: PRIMARY, "&:hover": { bgcolor: "#141F45" }, textTransform: "none", fontWeight: 600 }}
+                >
+                  Envoyer un message
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<EventIcon fontSize="small" />}
+                  onClick={() => ouvrirModalMessage("demande_rdv")}
+                  sx={{ bgcolor: SECONDARY, "&:hover": { bgcolor: "#B71C1C" }, textTransform: "none", fontWeight: 600 }}
+                >
+                  Planifier un rendez-vous
+                </Button>
+              </Box>
+            )}
+          </Box>
 
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+          <Divider sx={{ mb: 3 }} />
           {(error || erreurProfil) && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error || erreurProfil}
@@ -337,7 +367,7 @@ export default function EncadrantStagiaire() {
             </Paper>
           ) : (
             <>
-              <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start", flexWrap: "wrap", mb: 3 }}>
+              <Box sx={{ display: "flex", gap: 3, alignItems: "stretch", flexWrap: "wrap", mb: 3 }}>
                 {/* Fiche encadrant */}
                 <Paper sx={{ flex: "2 1 420px", minWidth: 300, border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 3 }}>
                   <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap" }}>
@@ -372,25 +402,67 @@ export default function EncadrantStagiaire() {
                         />
                       )}
 
-                      <Box sx={{ display: "flex", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<SendIcon fontSize="small" />}
-                          onClick={() => ouvrirModalMessage("message")}
-                          sx={{ bgcolor: PRIMARY, "&:hover": { bgcolor: "#141F45" }, textTransform: "none", fontWeight: 600 }}
-                        >
-                          Envoyer un message
-                        </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<EventIcon fontSize="small" />}
-                          onClick={() => ouvrirModalMessage("demande_rdv")}
-                          sx={{ bgcolor: SECONDARY, "&:hover": { bgcolor: "#B71C1C" }, textTransform: "none", fontWeight: 600 }}
-                        >
-                          Planifier un rendez-vous
-                        </Button>
+                    </Box>
+                  </Box>
+
+                  <Divider sx={{ my: 2.5 }} />
+
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <BusinessIcon fontSize="small" sx={{ color: TEXT_LIGHT, mt: 0.2 }} />
+                      <Box>
+                        <Typography variant="caption" sx={{ color: TEXT_LIGHT, display: "block" }}>
+                          Bureau
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600} sx={{ color: "#1F2937" }}>
+                          {encadrant?.bureau || "—"}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <ScheduleIcon fontSize="small" sx={{ color: SECONDARY, mt: 0.2 }} />
+                      <Box>
+                        <Typography variant="caption" sx={{ color: SECONDARY, fontWeight: 700, display: "block" }}>
+                          Disponibilite
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "#1F2937", whiteSpace: "pre-line" }}>
+                          {encadrant?.horaires_disponibilite || "Non renseigne"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Divider sx={{ my: 2.5 }} />
+
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, borderRadius: 3, bgcolor: "#F5F6FA" }}>
+                      <Box sx={{ width: 38, height: 38, borderRadius: "50%", bgcolor: `${PRIMARY}18`, color: PRIMARY, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <GroupsIcon fontSize="small" />
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: TEXT_LIGHT, display: "block" }}>
+                          Stagiaires encadres
+                        </Typography>
+                        <Typography variant="body2" fontWeight={700} sx={{ color: "#1F2937" }}>
+                          {encadrant?.nb_stagiaires_encadres ?? "—"}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, borderRadius: 3, bgcolor: "#F5F6FA" }}>
+                      <Box sx={{ width: 38, height: 38, borderRadius: "50%", bgcolor: `${SECONDARY}18`, color: SECONDARY, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <EventIcon fontSize="small" />
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="caption" sx={{ color: TEXT_LIGHT, display: "block" }}>
+                          Prochain rendez-vous
+                        </Typography>
+                        <Typography variant="body2" fontWeight={700} sx={{ color: "#1F2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {encadrant?.prochain_rendez_vous
+                            ? `${new Date(encadrant.prochain_rendez_vous.date).toLocaleDateString("fr-FR")} - ${encadrant.prochain_rendez_vous.heure}`
+                            : "Aucun planifie"}
+                        </Typography>
                       </Box>
                     </Box>
                   </Box>
@@ -426,31 +498,6 @@ export default function EncadrantStagiaire() {
                     </Box>
                   </Box>
 
-                  <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
-                    <BusinessIcon fontSize="small" sx={{ color: TEXT_LIGHT, mt: 0.2 }} />
-                    <Box>
-                      <Typography variant="caption" sx={{ color: TEXT_LIGHT, display: "block" }}>
-                        Bureau
-                      </Typography>
-                      <Typography variant="body2" fontWeight={600} sx={{ color: "#1F2937" }}>
-                        {encadrant?.bureau || "—"}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Divider sx={{ my: 1.5 }} />
-
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    <ScheduleIcon fontSize="small" sx={{ color: SECONDARY, mt: 0.2 }} />
-                    <Box>
-                      <Typography variant="caption" sx={{ color: SECONDARY, fontWeight: 700, display: "block" }}>
-                        Horaires de disponibilité
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "#1F2937", whiteSpace: "pre-line" }}>
-                        {encadrant?.horaires_disponibilite || "Non renseigné"}
-                      </Typography>
-                    </Box>
-                  </Box>
                 </Paper>
               </Box>
 

@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Divider,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -21,9 +22,8 @@ import InfoIcon from "@mui/icons-material/Info";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import EditIcon from "@mui/icons-material/Edit";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import { authHeaders } from "../auth";
-import TopBarStagiaire from "../components/TopBarStagiaire";
-
 const API_URL = "http://127.0.0.1:8001";
 
 const PRIMARY = "#1D2B5B";
@@ -233,8 +233,7 @@ export default function PresencesStagiaire() {
   if (loading) {
     return (
       <>
-        <TopBarStagiaire nom={profil?.nom} titre="Mes présences" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
           <CircularProgress sx={{ color: PRIMARY }} />
         </Box>
       </>
@@ -243,9 +242,37 @@ export default function PresencesStagiaire() {
 
   return (
     <>
-      <TopBarStagiaire nom={profil?.nom} titre="Mes présences" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
+<Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2, mb: 3 }}>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
+                Mes présences
+              </Typography>
+              <Typography variant="body2" sx={{ color: TEXT_LIGHT, mt: 0.5 }}>
+                Marquez votre présence en début et en fin de journée.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AccessTimeIcon />}
+              disabled={departFait || pointageEnCours}
+              onClick={pointerPresence}
+              sx={{
+                bgcolor: PRIMARY,
+                "&:hover": { bgcolor: PRIMARY },
+                "&.Mui-disabled": { bgcolor: "rgba(29,43,91,0.3)", color: "rgba(255,255,255,0.7)" },
+                textTransform: "none",
+                fontWeight: 700,
+                borderRadius: 2,
+                px: 3,
+              }}
+            >
+              {pointageEnCours ? "Enregistrement..." : libellePointage}
+            </Button>
+          </Box>
 
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+          <Divider sx={{ mb: 3 }} />
+
           {(error || erreurProfil) && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error || erreurProfil}
@@ -266,35 +293,50 @@ export default function PresencesStagiaire() {
 
           {/* Cartes de stats */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
-            <Paper sx={{ border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 2, transition: "all 0.25s ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" } }}>
-              <Typography variant="caption" sx={{ color: TEXT_LIGHT }}>
-                Total Heures (Mois)
-              </Typography>
-              <Typography variant="h6" fontWeight={700} sx={{ color: "#1F2937" }}>
+            <Paper sx={{ border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 3, transition: "all 0.25s ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" } }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                <Box sx={{ width: 48, height: 48, borderRadius: "50%", bgcolor: `${PRIMARY}20`, color: PRIMARY, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <AccessTimeIcon fontSize="small" />
+                </Box>
+                <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase" }}>
+                  Total Heures (Mois)
+                </Typography>
+              </Box>
+              <Typography variant="h3" sx={{ color: PRIMARY, fontWeight: 800, fontSize: "2rem" }}>
                 {stats.total_heures_mois} h
               </Typography>
             </Paper>
 
-            <Paper sx={{ border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 2, transition: "all 0.25s ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" } }}>
-              <Typography variant="caption" sx={{ color: TEXT_LIGHT }}>
-                Taux de Présence
-              </Typography>
-              <Typography variant="h6" fontWeight={700} sx={{ color: SECONDARY }}>
+            <Paper sx={{ border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 3, transition: "all 0.25s ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" } }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                <Box sx={{ width: 48, height: 48, borderRadius: "50%", bgcolor: `${"#2E7D32"}20`, color: "#2E7D32", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <TrendingUpIcon fontSize="small" />
+                </Box>
+                <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase" }}>
+                  Taux de Presence
+                </Typography>
+              </Box>
+              <Typography variant="h3" sx={{ color: "#2E7D32", fontWeight: 800, fontSize: "2rem" }}>
                 {stats.taux_presence}%
               </Typography>
             </Paper>
 
-            <Paper sx={{ border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 2, transition: "all 0.25s ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" } }}>
-              <Typography variant="caption" sx={{ color: TEXT_LIGHT }}>
-                Jours d'Absence
-              </Typography>
-              <Typography variant="h6" fontWeight={700} sx={{ color: "#1F2937" }}>
+            <Paper sx={{ border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 3, transition: "all 0.25s ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" } }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                <Box sx={{ width: 48, height: 48, borderRadius: "50%", bgcolor: `${"#EF6C00"}20`, color: "#EF6C00", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <EventBusyIcon fontSize="small" />
+                </Box>
+                <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase" }}>
+                  Jours d'Absence
+                </Typography>
+              </Box>
+              <Typography variant="h3" sx={{ color: "#EF6C00", fontWeight: 800, fontSize: "2rem" }}>
                 {stats.jours_absence_mois} jour{stats.jours_absence_mois > 1 ? "s" : ""}
               </Typography>
             </Paper>
 
-            <Paper sx={{ border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 2, transition: "all 0.25s ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" } }}>
-              <Typography variant="caption" sx={{ color: TEXT_LIGHT }}>
+            <Paper sx={{ border: `1px solid ${BORDER}`, borderRadius: 4, bgcolor: WHITE, p: 3, transition: "all 0.25s ease", "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" } }}>
+              <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase" }}>
                 Statut Actuel
               </Typography>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mt: 0.5 }}>
@@ -440,19 +482,19 @@ export default function PresencesStagiaire() {
                       zIndex: 1,
                     }}
                   >
-                    <Typography variant="caption" sx={{ flex: "1 1 110px", color: TEXT_LIGHT, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    <Typography variant="caption" sx={{ flex: "1 1 110px", color: TEXT_LIGHT, fontWeight: 700 }}>
                       Date
                     </Typography>
-                    <Typography variant="caption" sx={{ width: 60, color: TEXT_LIGHT, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    <Typography variant="caption" sx={{ width: 60, color: TEXT_LIGHT, fontWeight: 700 }}>
                       Arrivée
                     </Typography>
-                    <Typography variant="caption" sx={{ width: 60, color: TEXT_LIGHT, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    <Typography variant="caption" sx={{ width: 60, color: TEXT_LIGHT, fontWeight: 700 }}>
                       Départ
                     </Typography>
-                    <Typography variant="caption" sx={{ width: 76, color: TEXT_LIGHT, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "right" }}>
+                    <Typography variant="caption" sx={{ width: 76, color: TEXT_LIGHT, fontWeight: 700, textAlign: "right" }}>
                       Statut
                     </Typography>
-                    <Typography variant="caption" sx={{ width: 40, color: TEXT_LIGHT, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, textAlign: "right" }}>
+                    <Typography variant="caption" sx={{ width: 40, color: TEXT_LIGHT, fontWeight: 700, textAlign: "right" }}>
                       
                     </Typography>
                   </Box>
@@ -503,40 +545,6 @@ export default function PresencesStagiaire() {
             </Paper>
           </Box>
 
-          <Paper sx={{ mt: 3, p: 2.5, borderRadius: 4, bgcolor: PRIMARY, color: "#FFF", display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-            <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
-              <InfoIcon sx={{ color: SECONDARY, mt: 0.3 }} />
-              <Box>
-                <Typography variant="body2" fontWeight={700}>
-                  Pointage
-                </Typography>
-                <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)" }}>
-                  {departFait
-                    ? "Vous avez pointé votre arrivée et votre départ aujourd'hui."
-                    : arriveeFaite
-                    ? "Vous êtes arrivé aujourd'hui. N'oubliez pas de pointer votre départ."
-                    : "Marquez votre présence en début et en fin de journée."}
-                </Typography>
-              </Box>
-            </Box>
-            <Button
-              variant="contained"
-              startIcon={<AccessTimeIcon />}
-              disabled={departFait || pointageEnCours}
-              onClick={pointerPresence}
-              sx={{
-                bgcolor: SECONDARY,
-                "&:hover": { bgcolor: "#C41A1F" },
-                "&.Mui-disabled": { bgcolor: "rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.5)" },
-                textTransform: "none",
-                fontWeight: 700,
-                borderRadius: 2,
-                px: 3,
-              }}
-            >
-              {pointageEnCours ? "Enregistrement..." : libellePointage}
-            </Button>
-          </Paper>
       </Box>
 
       <Dialog open={!!presenceAModifier} onClose={() => !envoiModifPresence && setPresenceAModifier(null)} fullWidth maxWidth="xs">

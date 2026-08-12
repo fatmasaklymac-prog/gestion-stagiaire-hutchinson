@@ -1,6 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+import io
+import requests
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 from pydantic import BaseModel
 from datetime import date, timedelta, datetime
 import secrets
@@ -99,6 +104,8 @@ class UtilisateurCreate(BaseModel):
     nom: str
     email: str
     mot_de_passe_hash: str
+    stagiaire_id: int | None = None
+    encadrant_id: int | None = None
     role: str
 
 
@@ -146,9 +153,11 @@ class DocumentOut(BaseModel):
     statut: str
     icon: str
     valide: bool
+    commentaire: str | None = None
     date_document: date | None = None
     fichier_url: str | None = None
     taille_affichee: str | None = None
+    origine: str = "stagiaire"
 
     class Config:
         from_attributes = True
@@ -177,6 +186,7 @@ class DocumentOut(BaseModel):
             "en_attente": "En attente",
             "manquant": "Manquant",
             "refuse": "Refuse",
+            "a_completer": "A completer",
         }
         return cls(
             id=doc.id,
@@ -184,9 +194,11 @@ class DocumentOut(BaseModel):
             statut=labels_statut.get(doc.statut, doc.statut),
             icon=icones.get(doc.type_document, "pdf"),
             valide=doc.statut in statuts_valides,
+            commentaire=doc.commentaire,
             date_document=doc.date_document,
             fichier_url=doc.fichier_url,
             taille_affichee=formater_taille(doc.taille_octets),
+            origine=getattr(doc, "origine", None) or "stagiaire",
         )
 
 
@@ -264,6 +276,51 @@ def supprimer_etablissement(
 # ============================================================
 # Départements
 # ============================================================
+
+@app.get("/departements/export")
+def exporter_departements_excel(
+    db: Session = Depends(get_db),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
+):
+    departements = db.query(Departement).all()
+    stagiaires = db.query(Stagiaire).all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Departements"
+
+    entetes = ["Departement", "Total stagiaires", "Stagiaires actifs", "Stagiaires termines"]
+    ws.append(entetes)
+
+    header_fill = PatternFill(start_color="1E3A5F", end_color="1E3A5F", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center")
+
+    for dept in departements:
+        stagiaires_dept = [s for s in stagiaires if s.departement_id == dept.id]
+        total = len(stagiaires_dept)
+        actifs = len([s for s in stagiaires_dept if s.statut == "en_cours"])
+        termines = len([s for s in stagiaires_dept if s.statut == "termine"])
+        ws.append([dept.nom, total, actifs, termines])
+
+    largeurs = [30, 18, 18, 20]
+    for i, largeur in enumerate(largeurs, start=1):
+        ws.column_dimensions[chr(64 + i)].width = largeur
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    nom_fichier = f"departements_{date.today().isoformat()}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nom_fichier}"'},
+    )
+
 
 @app.get("/departements")
 def liste_departements(db: Session = Depends(get_db)):
@@ -422,12 +479,55 @@ def supprimer_utilisateur(
 @app.get("/stagiaires")
 def liste_stagiaires(db: Session = Depends(get_db)):
     return db.query(Stagiaire).all()
+@app.get("/stagiaires/export-excel")
+def export_stagiaires_excel(db: Session = Depends(get_db)):
+    """Exporte la liste des stagiaires en fichier Excel"""
+    from openpyxl import Workbook
+
+    stagiaires = db.query(Stagiaire).all()
+
+    etablissements = {e.id: e.nom for e in db.query(Etablissement).all()}
+    departements = {d.id: d.nom for d in db.query(Departement).all()}
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Stagiaires"
+
+    entetes = ["Nom", "Prénom", "Email", "Téléphone", "Établissement", "Département", "Statut", "Date Début", "Date Fin"]
+    ws.append(entetes)
+
+    for s in stagiaires:
+        ws.append([
+            s.nom,
+            s.prenom,
+            s.email,
+            s.telephone,
+            etablissements.get(s.etablissement_id, ""),
+            departements.get(s.departement_id, ""),
+            s.statut,
+            s.date_debut.isoformat() if s.date_debut else "",
+            s.date_fin.isoformat() if s.date_fin else "",
+        ])
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=stagiaires_hutchinson.xlsx"}
+    )
+
+
 @app.get("/stagiaires/{stagiaire_id}")
 def obtenir_stagiaire(stagiaire_id: int, db: Session = Depends(get_db)):
     stagiaire = db.query(Stagiaire).filter(Stagiaire.id == stagiaire_id).first()
     if stagiaire is None:
         return {"erreur": "Stagiaire non trouvé"}
     return stagiaire
+
+
 # ============================================================
 # Authentification (Login / JWT)
 # ============================================================
@@ -653,7 +753,10 @@ def supprimer_stagiaire(
 # ============================================================
 
 @app.get("/documents")
-def liste_documents(db: Session = Depends(get_db)):
+def liste_documents(
+    db: Session = Depends(get_db),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
+):
     return db.query(Document).all()
 
 
@@ -661,7 +764,7 @@ def liste_documents(db: Session = Depends(get_db)):
 def ajouter_document(
     document: DocumentCreate,
     db: Session = Depends(get_db),
-    utilisateur_courant: Utilisateur = Depends(exiger_role("admin_rh")),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
 ):
     nouveau = Document(**document.dict())
     db.add(nouveau)
@@ -691,6 +794,163 @@ def supprimer_document(
     db.delete(obj)
     db.commit()
     return {"message": f"Document {document_id} supprimé"}
+
+
+class StagiaireResumeOut(BaseModel):
+    id: int
+    nom: str
+    prenom: str
+
+    class Config:
+        from_attributes = True
+
+
+class DocumentRHOut(DocumentOut):
+    stagiaire: StagiaireResumeOut | None = None
+
+    @classmethod
+    def depuis_document_rh(cls, doc):
+        base = DocumentOut.depuis_document(doc)
+        stagiaire_out = None
+        if doc.stagiaire_id:
+            stagiaire_obj = getattr(doc, "_stagiaire_charge", None)
+            if stagiaire_obj:
+                stagiaire_out = StagiaireResumeOut.from_orm(stagiaire_obj)
+        return cls(**base.dict(), stagiaire=stagiaire_out)
+
+
+class DocumentStatutUpdate(BaseModel):
+    statut: str
+    commentaire: str | None = None
+
+
+@app.get("/rh/documents/export")
+def exporter_documents_excel(
+    db: Session = Depends(get_db),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
+):
+    stagiaires = db.query(Stagiaire).all()
+    departements = {d.id: d.nom for d in db.query(Departement).all()}
+    encadrants = {e.id: f"{e.prenom} {e.nom}" for e in db.query(Encadrant).all()}
+    documents = db.query(Document).all()
+
+    docs_par_stagiaire = {}
+    for doc in documents:
+        docs_par_stagiaire.setdefault(doc.stagiaire_id, []).append(doc)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Documents"
+
+    entetes = [
+        "Stagiaire", "CIN", "Departement", "Encadrant",
+        "Type de document", "Statut", "Date du document",
+        "Commentaire", "Origine",
+    ]
+    ws.append(entetes)
+
+    header_fill = PatternFill(start_color="1E3A5F", end_color="1E3A5F", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center")
+
+    for stagiaire in stagiaires:
+        nom_complet = f"{stagiaire.prenom} {stagiaire.nom}"
+        dept_nom = departements.get(stagiaire.departement_id, "")
+        enc_nom = encadrants.get(stagiaire.encadrant_id, "")
+        docs = docs_par_stagiaire.get(stagiaire.id, [])
+
+        if not docs:
+            ws.append([nom_complet, stagiaire.cin or "", dept_nom, enc_nom, "", "Aucun document", "", "", ""])
+            continue
+
+        for doc in docs:
+            ws.append([
+                nom_complet,
+                stagiaire.cin or "",
+                dept_nom,
+                enc_nom,
+                doc.type_document or "",
+                doc.statut or "",
+                doc.date_document.strftime("%d/%m/%Y") if doc.date_document else "",
+                doc.commentaire or "",
+                doc.origine or "",
+            ])
+
+    largeurs = [22, 14, 16, 20, 20, 14, 16, 30, 12]
+    for i, largeur in enumerate(largeurs, start=1):
+        ws.column_dimensions[chr(64 + i)].width = largeur
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    nom_fichier = f"documents_stagiaires_{date.today().isoformat()}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nom_fichier}"'},
+    )
+
+
+@app.get("/rh/documents", response_model=list[DocumentRHOut])
+def liste_documents_rh(
+    statut: str | None = None,
+    db: Session = Depends(get_db),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
+):
+    requete = db.query(Document)
+    if statut:
+        requete = requete.filter(Document.statut == statut)
+    documents = requete.all()
+
+    resultats = []
+    for doc in documents:
+        stagiaire_obj = db.query(Stagiaire).filter(Stagiaire.id == doc.stagiaire_id).first()
+        doc._stagiaire_charge = stagiaire_obj
+        resultats.append(DocumentRHOut.depuis_document_rh(doc))
+    return resultats
+
+
+@app.patch("/documents/{document_id}/statut", response_model=DocumentOut)
+def modifier_statut_document(
+    document_id: int,
+    donnees: DocumentStatutUpdate,
+    db: Session = Depends(get_db),
+    utilisateur_courant: Utilisateur = Depends(obtenir_utilisateur_courant),
+):
+    statuts_autorises = {"en_attente", "valide", "genere", "recu", "manquant", "refuse", "a_completer"}
+    if donnees.statut not in statuts_autorises:
+        raise HTTPException(status_code=400, detail="Statut invalide")
+
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document introuvable")
+
+    if utilisateur_courant.role == "encadrant":
+        verifier_stagiaire_assigne(doc.stagiaire_id, utilisateur_courant, db)
+    elif utilisateur_courant.role not in ("rh", "admin_rh"):
+        raise HTTPException(status_code=403, detail="Non autorise a modifier le statut")
+
+    doc.statut = donnees.statut
+    doc.commentaire = donnees.commentaire
+    db.commit()
+    db.refresh(doc)
+
+    if donnees.statut == "a_completer" and doc.stagiaire_id:
+        notification_stagiaire = Notification(
+            stagiaire_id=doc.stagiaire_id,
+            categorie="document",
+            urgence="normale",
+            titre="Document a completer",
+            contenu=donnees.commentaire or "Un de vos documents necessite une action de votre part.",
+        )
+        db.add(notification_stagiaire)
+        db.commit()
+
+    return DocumentOut.depuis_document(doc)
 
 
 TYPES_DOCUMENTS_AUTORISES = {
@@ -734,6 +994,7 @@ async def uploader_document(
         date_document=date.today(),
         fichier_url=f"/uploads/{nom_unique}",
         taille_octets=len(contenu),
+        origine="stagiaire",
     )
     db.add(nouveau_document)
     db.commit()
@@ -754,6 +1015,65 @@ async def uploader_document(
         )
         db.add(notification_encadrant)
         db.commit()
+
+    return DocumentOut.depuis_document(nouveau_document)
+
+
+@app.post("/documents/upload-rh")
+async def uploader_document_rh(
+    stagiaire_id: int = Form(...),
+    type_document: str = Form(...),
+    fichier: UploadFile = File(...),
+    date_document: str = Form(None),
+    db: Session = Depends(get_db),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
+):
+    stagiaire_cible = db.query(Stagiaire).filter(Stagiaire.id == stagiaire_id).first()
+    if not stagiaire_cible:
+        raise HTTPException(status_code=404, detail="Stagiaire introuvable")
+
+    extension = os.path.splitext(fichier.filename)[1].lower()
+    if extension not in EXTENSIONS_AUTORISEES:
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé")
+
+    contenu = await fichier.read()
+    if len(contenu) > TAILLE_MAX_OCTETS:
+        raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 10 Mo)")
+
+    nom_unique = f"{uuid.uuid4().hex}{extension}"
+    chemin_disque = os.path.join(UPLOAD_DIR, nom_unique)
+    with open(chemin_disque, "wb") as f:
+        f.write(contenu)
+
+    date_finale = date.today()
+    if date_document:
+        try:
+            date_finale = date.fromisoformat(date_document)
+        except ValueError:
+            pass
+
+    nouveau_document = Document(
+        stagiaire_id=stagiaire_id,
+        type_document=type_document,
+        statut="valide",
+        date_document=date_finale,
+        fichier_url=f"/uploads/{nom_unique}",
+        taille_octets=len(contenu),
+        origine="rh",
+    )
+    db.add(nouveau_document)
+    db.commit()
+    db.refresh(nouveau_document)
+
+    notification_stagiaire = Notification(
+        stagiaire_id=stagiaire_id,
+        categorie="document",
+        urgence="normale",
+        titre="Nouveau document disponible",
+        contenu=f"Le service RH vous a transmis un document ({type_document}).",
+    )
+    db.add(notification_stagiaire)
+    db.commit()
 
     return DocumentOut.depuis_document(nouveau_document)
 
@@ -846,7 +1166,10 @@ async def uploader_photo_profil(
 # ============================================================
 
 @app.get("/presences")
-def liste_presences(db: Session = Depends(get_db)):
+def liste_presences(
+    db: Session = Depends(get_db),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
+):
     return db.query(Presence).all()
 
 
@@ -1323,7 +1646,7 @@ def supprimer_session(
 @app.get("/presences/jour")
 def presences_du_jour(
     db: Session = Depends(get_db),
-    utilisateur_courant: Utilisateur = Depends(exiger_role("admin_rh")),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
 ):
     aujourdhui = date.today()
     total = db.query(Stagiaire).filter(Stagiaire.statut == "en_cours").count()
@@ -1706,6 +2029,30 @@ def affecter_stagiaire_a_moi(
     return {"id": stagiaire.id, "encadrant_id": stagiaire.encadrant_id}
 
 
+@app.get("/moi/mes-stagiaires/presences")
+def obtenir_presences_de_mes_stagiaires(
+    utilisateur_courant: Utilisateur = Depends(obtenir_utilisateur_courant),
+    db: Session = Depends(get_db),
+):
+    if utilisateur_courant.role != "encadrant" or not utilisateur_courant.encadrant_id:
+        raise HTTPException(status_code=403, detail="Reserve aux encadrants")
+
+    mes_stagiaires_ids = [
+        s.id
+        for s in db.query(Stagiaire)
+        .filter(Stagiaire.encadrant_id == utilisateur_courant.encadrant_id)
+        .all()
+    ]
+
+    presences = (
+        db.query(Presence)
+        .filter(Presence.stagiaire_id.in_(mes_stagiaires_ids))
+        .order_by(Presence.date.desc())
+        .all()
+    )
+    return presences
+
+
 @app.get("/moi/mes-stagiaires/{stagiaire_id}")
 def obtenir_un_de_mes_stagiaires(
     stagiaire_id: int,
@@ -1739,10 +2086,12 @@ def obtenir_un_de_mes_stagiaires(
         "cin": stagiaire.cin,
         "ecole": stagiaire.ecole,
         "etablissement": etablissement.nom if etablissement else None,
+        "etablissement_id": stagiaire.etablissement_id,
         "niveau_etudes": stagiaire.niveau_etudes,
         "specialisation": stagiaire.specialisation,
         "type_stage": stagiaire.type_stage,
         "departement": departement.nom if departement else None,
+        "departement_id": stagiaire.departement_id,
         "date_debut": stagiaire.date_debut,
         "date_fin": stagiaire.date_fin,
         "statut": stagiaire.statut,
@@ -1834,7 +2183,6 @@ def obtenir_evaluations_a_faire(
 
     return {"total": total_a_faire, "urgentes": urgentes, "liste": liste}
 
-
 @app.get("/moi/mes-stagiaires/{stagiaire_id}/presences/stats")
 def obtenir_stats_presences_dun_de_mes_stagiaires(
     stagiaire_id: int,
@@ -1918,43 +2266,6 @@ def creer_commentaire_pour_un_de_mes_stagiaires(
     return nouveau
 
 
-@app.post("/moi/mes-stagiaires/{stagiaire_id}/documents/upload")
-async def uploader_document_pour_un_de_mes_stagiaires(
-    stagiaire_id: int,
-    type_document: str = Form(...),
-    fichier: UploadFile = File(...),
-    utilisateur_courant: Utilisateur = Depends(obtenir_utilisateur_courant),
-    db: Session = Depends(get_db),
-):
-    verifier_stagiaire_assigne(stagiaire_id, utilisateur_courant, db)
-
-    if type_document not in TYPES_DOCUMENTS_AUTORISES:
-        raise HTTPException(status_code=400, detail="Type de document invalide")
-
-    extension = os.path.splitext(fichier.filename)[1].lower()
-    if extension not in EXTENSIONS_AUTORISEES:
-        raise HTTPException(status_code=400, detail="Type de fichier non autorise")
-
-    contenu_fichier = await fichier.read()
-    if len(contenu_fichier) > TAILLE_MAX_OCTETS:
-        raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 10 Mo)")
-
-    nom_unique = f"{uuid.uuid4().hex}{extension}"
-    chemin_disque = os.path.join(UPLOAD_DIR, nom_unique)
-    with open(chemin_disque, "wb") as f:
-        f.write(contenu_fichier)
-
-    nouveau_document = Document(
-        stagiaire_id=stagiaire_id,
-        type_document=type_document,
-        statut="en_attente",
-        date_document=date.today(),
-        fichier_url=f"/uploads/{nom_unique}",
-        taille_octets=len(contenu_fichier),
-    )
-    db.add(nouveau_document)
-    db.commit()
-    db.refresh(nouveau_document)
 
     return DocumentOut.depuis_document(nouveau_document)
 
@@ -2179,6 +2490,28 @@ def obtenir_mon_encadrant(
     if encadrant.departement_id:
         departement = db.query(Departement).filter(Departement.id == encadrant.departement_id).first()
 
+    nb_stagiaires_encadres = db.query(Stagiaire).filter(Stagiaire.encadrant_id == encadrant.id).count()
+
+    prochaine_reunion = (
+        db.query(Reunion)
+        .filter(
+            Reunion.stagiaire_id == stagiaire.id,
+            Reunion.encadrant_id == encadrant.id,
+            Reunion.statut == "a_venir",
+        )
+        .order_by(Reunion.date_reunion.asc(), Reunion.heure.asc())
+        .first()
+    )
+
+    prochain_rendez_vous = None
+    if prochaine_reunion is not None:
+        prochain_rendez_vous = {
+            "date": prochaine_reunion.date_reunion.isoformat() if prochaine_reunion.date_reunion else None,
+            "heure": prochaine_reunion.heure,
+            "objet": prochaine_reunion.objet,
+            "type_reunion": prochaine_reunion.type_reunion,
+        }
+
     return {
         "id": encadrant.id,
         "nom": encadrant.nom,
@@ -2190,6 +2523,8 @@ def obtenir_mon_encadrant(
         "horaires_disponibilite": encadrant.horaires_disponibilite,
         "photo_url": encadrant.photo_url,
         "departement": departement.nom if departement else None,
+        "nb_stagiaires_encadres": nb_stagiaires_encadres,
+        "prochain_rendez_vous": prochain_rendez_vous,
     }
 
 
@@ -2363,6 +2698,33 @@ def lister_conversations_encadrant(
         reverse=True,
     )
     return conversations
+
+
+@app.get("/encadrant/messages/non-lus")
+def compter_messages_non_lus_encadrant(
+    utilisateur_courant: Utilisateur = Depends(obtenir_utilisateur_courant),
+    db: Session = Depends(get_db),
+):
+    if utilisateur_courant.role != "encadrant" or not utilisateur_courant.encadrant_id:
+        raise HTTPException(status_code=403, detail="Reserve aux encadrants")
+
+    stagiaires_ids = [
+        s.id
+        for s in db.query(Stagiaire.id)
+        .filter(Stagiaire.encadrant_id == utilisateur_courant.encadrant_id)
+        .all()
+    ]
+
+    count = (
+        db.query(Message)
+        .filter(
+            Message.stagiaire_id.in_(stagiaires_ids),
+            Message.expediteur == "stagiaire",
+            Message.lu == False,
+        )
+        .count()
+    )
+    return {"non_lus": count}
 
 
 @app.get("/encadrant/messages/{stagiaire_id}")
@@ -3158,7 +3520,7 @@ async def televerser_document_candidature(fichier: UploadFile = File(...)):
 @app.get("/demandes-stage")
 def liste_demandes_stage(
     db: Session = Depends(get_db),
-    utilisateur_courant: Utilisateur = Depends(exiger_role("admin_rh")),
+    utilisateur_courant: Utilisateur = Depends(exiger_role("rh", "admin_rh")),
 ):
     return db.query(DemandeStage).order_by(DemandeStage.id.desc()).all()
 
@@ -3417,7 +3779,7 @@ def envoyer_identifiants_api(request: EmailIdentifiantsRequest, db: Session = De
     
     if not RESEND_API_KEY:
         print("️ ATTENTION : RESEND_API_KEY non définie dans le fichier .env")
-        return {"message": "Erreur : clé API Resend non configurée", "email": request.email}
+        raise HTTPException(status_code=503, detail="Clé API Resend non configurée")
     
     headers = {
         "Authorization": f"Bearer {RESEND_API_KEY}",

@@ -209,6 +209,31 @@ export default function Departements() {
       });
   };
 
+  const handleExport = () => {
+    fetch(`${API_URL}/departements/export`, { headers: authHeaders() })
+      .then(async (r) => {
+        if (!r.ok) {
+          const text = await r.text();
+          throw new Error(text);
+        }
+        return r.blob();
+      })
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `departements_${new Date().toISOString().split("T")[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((err) => {
+        console.error("❌ Erreur export:", err);
+        alert("Erreur lors de l'export: " + err.message);
+      });
+  };
+
   // ─── Filter ───
   const filteredDepartements = departements.filter((d) =>
     d.nom.toLowerCase().includes(search.toLowerCase())
@@ -294,6 +319,7 @@ export default function Departements() {
         <Button
           variant="outlined"
           startIcon={<DownloadIcon />}
+          onClick={handleExport}
           sx={{
             borderRadius: 3,
             textTransform: "none",

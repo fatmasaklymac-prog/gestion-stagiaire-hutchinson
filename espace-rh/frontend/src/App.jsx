@@ -16,6 +16,7 @@ import Accueil from "./pages/Accueil";
 import SelectionProfil from "./pages/SelectionProfil";
 import DashboardEncadrant from "./pages/DashboardEncadrant";
 import LayoutEncadrant from "./pages/LayoutEncadrant";
+import PresencesEncadrant from "./pages/PresencesEncadrant";
 import StagiaireDetailEncadrant from "./pages/StagiaireDetailEncadrant";
 import MessagerieEncadrant from "./pages/MessagerieEncadrant";
 import NotificationsEncadrant from "./pages/NotificationsEncadrant";
@@ -45,10 +46,6 @@ import DemandePfePublic from "./pages/DemandePfePublic";
 import Demandestagepublic from "./pages/Demandestagepublic";
 
 import AccueilBinome from "./pages/AccueilBinome";
-import DepartementsBinome from "./pages/DepartementsBinome";
-import DocumentsBinome from "./pages/DocumentsBinome";
-import PresencesBinome from "./pages/PresencesBinome";
-import StagiairesBinome from "./pages/StagiairesBinome";
 import SuiviCandidatureBinome from "./pages/SuiviCandidatureBinome";
 import DemandesStageBinome from "./pages/DemandesStageBinome";
 
@@ -87,9 +84,11 @@ function App() {
           <Route path="stagiaires/:id" element={<StagiaireDetailEncadrant />} />
           <Route path="evaluations" element={<EvaluationsListe />} />
           <Route path="evaluations/:stagiaireId" element={<EvaluationEncadrant />} />
+          <Route path="evaluations/:stagiaireId/:evaluationId" element={<EvaluationEncadrant />} />
           <Route path="messagerie" element={<MessagerieEncadrant />} />
           <Route path="notifications" element={<NotificationsEncadrant />} />
           <Route path="reunions" element={<ReunionsEncadrant />} />
+          <Route path="presences" element={<PresencesEncadrant />} />
         </Route>
         <Route
           path="/stagiaire"
@@ -122,13 +121,9 @@ function App() {
         <Route path="/admin/pfe-book" element={<LayoutRH><AdminPfeBook /></LayoutRH>} />
         <Route path="/demandes-stage/:id" element={<LayoutRH><DetailDemande /></LayoutRH>} />
 
-        <Route path="/binome/accueil" element={<AccueilBinome />} />
-        <Route path="/binome/departements" element={<LayoutRH><DepartementsBinome /></LayoutRH>} />
-        <Route path="/binome/documents" element={<LayoutRH><DocumentsBinome /></LayoutRH>} />
-        <Route path="/binome/presences" element={<LayoutRH><PresencesBinome /></LayoutRH>} />
-        <Route path="/binome/stagiaires" element={<LayoutRH><StagiairesBinome /></LayoutRH>} />
-        <Route path="/binome/suivi-candidature" element={<SuiviCandidatureBinome />} />
-        <Route path="/binome/demandes-stage" element={<LayoutRH><DemandesStageBinome /></LayoutRH>} />
+        <Route path="/candidature/accueil" element={<AccueilBinome />} />
+        <Route path="/candidature/suivi-candidature" element={<SuiviCandidatureBinome />} />
+        <Route path="/sujets-pfe" element={<LayoutRH><DemandesStageBinome /></LayoutRH>} />
       </Routes>
     </BrowserRouter>
   );

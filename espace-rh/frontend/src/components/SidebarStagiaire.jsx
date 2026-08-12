@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography, Avatar } from "@mui/material";
+import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography, Avatar, Badge } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
@@ -37,7 +37,7 @@ const CLE_PAR_PATH_DEDIE = {
   "/stagiaire/notifications": "notifications",
 };
 
-function SidebarStagiaire({ nom, role = "Stagiaire", photoUrl }) {
+function SidebarStagiaire({ nom, role = "Stagiaire", photoUrl, notificationsNonLues = 0 }) {
   const location = useLocation();
   const initiale = nom ? nom.trim().charAt(0).toUpperCase() : "?";
 
@@ -113,7 +113,15 @@ function SidebarStagiaire({ nom, role = "Stagiaire", photoUrl }) {
                 "&:hover": { bgcolor: active ? SECONDARY : "rgba(255,255,255,0.08)" },
               }}
             >
-              <ListItemIcon sx={{ color: "white", minWidth: 38 }}>{item.icon}</ListItemIcon>
+              <ListItemIcon sx={{ color: "white", minWidth: 38 }}>
+                {item.key === "notifications" && notificationsNonLues > 0 ? (
+                  <Badge badgeContent={notificationsNonLues} color="error">
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
+              </ListItemIcon>
               <ListItemText
                 primary={item.text}
                 slotProps={{ primary: { fontSize: "0.9rem", fontWeight: active ? 600 : 400 } }}

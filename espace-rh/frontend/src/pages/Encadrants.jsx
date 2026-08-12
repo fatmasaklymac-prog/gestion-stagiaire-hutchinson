@@ -348,11 +348,11 @@ function Encadrants() {
           <TableHead>
             <TableRow sx={{ bgcolor: "#F8FAFC" }}>
               {["Encadrant", "Contact", "Département", "Charge actuelle"].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, color: PRIMARY, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "none", py: 1.5 }}>
+                <TableCell key={h} sx={{ fontWeight: 700, color: PRIMARY, borderBottom: "none", py: 1.5 }}>
                   {h}
                 </TableCell>
               ))}
-              <TableCell align="right" sx={{ fontWeight: 700, color: PRIMARY, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "none", py: 1.5 }}>
+              <TableCell align="right" sx={{ fontWeight: 700, color: PRIMARY, borderBottom: "none", py: 1.5 }}>
                 Actions
               </TableCell>
             </TableRow>

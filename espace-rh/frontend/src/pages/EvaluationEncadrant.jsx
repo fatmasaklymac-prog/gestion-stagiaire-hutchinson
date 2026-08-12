@@ -17,12 +17,19 @@ import {
   InputAdornment,
   IconButton,
   Badge,
+  Stepper,
+  Step,
+  StepLabel,
+  Divider,
 } from "@mui/material";
 import EventIcon from "@mui/icons-material/Event";
 import SaveIcon from "@mui/icons-material/Save";
 import SearchIcon from "@mui/icons-material/Search";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { authHeaders } from "../auth";
 
 const API_URL = "http://127.0.0.1:8001";
@@ -32,6 +39,8 @@ const WHITE = "#FFFFFF";
 const BORDER = "#E5E7EB";
 const TEXT_LIGHT = "#6B7280";
 const BACKGROUND = "#F5F7FB";
+
+const ETAPES = ["Critères de performance", "Synthèse qualitative", "Récapitulatif"];
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -45,6 +54,14 @@ function formatPeriode(debut, fin) {
   const options = { month: "long", year: "numeric" };
   return `${d1.toLocaleDateString("fr-FR", options)} - ${d2.toLocaleDateString("fr-FR", options)}`;
 }
+
+const LABELS_CRITERES = {
+  competences_techniques: { label: "Compétences techniques", description: "Maîtrise des outils et processus", type: "etoiles" },
+  qualite_travail: { label: "Qualité du travail", description: "Précision, respect des normes et rigueur", type: "etoiles" },
+  communication: { label: "Communication", description: "Intégration équipe et clarté des rapports", type: "etoiles" },
+  autonomie: { label: "Autonomie", description: "Capacité à prendre des initiatives", type: "curseur" },
+  ponctualite: { label: "Ponctualité", description: "Respect des horaires et délais", type: "curseur" },
+};
 
 function BarreDuHaut({ navigate }) {
   return (
@@ -93,12 +110,12 @@ function BarreDuHaut({ navigate }) {
           placeholder="Rechercher..."
           sx={{ width: 220, display: { xs: "none", sm: "block" }, "& .MuiOutlinedInput-root": { borderRadius: 3, bgcolor: BACKGROUND } }}
           slotProps={{
-  input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: TEXT_LIGHT, fontSize: 20 }} />
-              </InputAdornment>
-            ),
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: TEXT_LIGHT, fontSize: 20 }} />
+                </InputAdornment>
+              ),
             },
           }}
         />
@@ -115,32 +132,53 @@ function BarreDuHaut({ navigate }) {
   );
 }
 
-function CritereEtoiles({ label, description, valeur, onChange }) {
+function CarteApercuStagiaire({ stagiaire }) {
   return (
-    <Box sx={{ mb: 3 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: PRIMARY, mb: 3 }}>
+      <Typography variant="caption" sx={{ color: "#AEB6D6", fontWeight: 700, letterSpacing: 0.5 }}>
+        APERÇU STAGIAIRE
+      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 1.5, mb: 2 }}>
+        <Avatar
+          src={stagiaire.photo_url ? `${API_URL}${stagiaire.photo_url}` : undefined}
+          sx={{ width: 56, height: 56, bgcolor: SECONDARY, border: `2px solid ${SECONDARY}` }}
+        >
+          {stagiaire.prenom?.charAt(0)}
+        </Avatar>
         <Box>
-          <Typography variant="body1" fontWeight={700} sx={{ color: PRIMARY }}>
-            {label}
+          <Typography sx={{ color: WHITE, fontWeight: 700 }}>
+            {stagiaire.prenom} {stagiaire.nom}
           </Typography>
-          <Typography variant="body2" sx={{ color: TEXT_LIGHT }}>
-            {description}
+          <Typography variant="body2" sx={{ color: "#AEB6D6" }}>
+            {stagiaire.niveau_etudes || "—"} · {stagiaire.etablissement || "—"}
           </Typography>
         </Box>
-        <Rating
-          value={valeur}
-          onChange={(_, nouvelleValeur) => onChange(nouvelleValeur)}
-          sx={{ color: SECONDARY, mt: 0.5 }}
-        />
       </Box>
-    </Box>
+      <Box sx={{ display: "flex", gap: 1.5 }}>
+        <Box sx={{ bgcolor: "rgba(255,255,255,0.08)", borderRadius: 2, p: 1.5, flex: 1 }}>
+          <Typography variant="caption" sx={{ color: "#AEB6D6" }}>Durée</Typography>
+          <Typography sx={{ color: WHITE, fontWeight: 700 }}>
+            {stagiaire.date_debut && stagiaire.date_fin
+              ? `${Math.round((new Date(stagiaire.date_fin) - new Date(stagiaire.date_debut)) / (1000 * 60 * 60 * 24 * 30))} mois`
+              : "—"}
+          </Typography>
+        </Box>
+        <Box sx={{ bgcolor: "rgba(255,255,255,0.08)", borderRadius: 2, p: 1.5, flex: 1 }}>
+          <Typography variant="caption" sx={{ color: "#AEB6D6" }}>Statut</Typography>
+          <Typography sx={{ color: WHITE, fontWeight: 700 }}>
+            {stagiaire.statut === "en_cours" ? "En cours" : stagiaire.statut === "termine" ? "Terminé" : stagiaire.statut || "—"}
+          </Typography>
+        </Box>
+      </Box>
+    </Paper>
   );
 }
 
-function CritereCurseur({ label, description, valeur, onChange }) {
+function CarteCritere({ cle, valeur, onChange }) {
+  const { label, description, type } = LABELS_CRITERES[cle];
   return (
-    <Box sx={{ mb: 3 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 0.5 }}>
+    <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${BORDER}`, bgcolor: WHITE, mb: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: type === "curseur" ? 0.5 : 0 }}>
         <Box>
           <Typography variant="body1" fontWeight={700} sx={{ color: PRIMARY }}>
             {label}
@@ -149,31 +187,36 @@ function CritereCurseur({ label, description, valeur, onChange }) {
             {description}
           </Typography>
         </Box>
-        <Typography variant="body1" fontWeight={700} sx={{ color: SECONDARY }}>
-          {valeur}%
-        </Typography>
+        {type === "etoiles" ? (
+          <Rating value={valeur} onChange={(_, v) => onChange(v)} sx={{ color: SECONDARY, mt: 0.5 }} />
+        ) : (
+          <Typography variant="body1" fontWeight={700} sx={{ color: SECONDARY }}>
+            {valeur}%
+          </Typography>
+        )}
       </Box>
-      <Slider
-        value={valeur}
-        onChange={(_, nouvelleValeur) => onChange(nouvelleValeur)}
-        sx={{
-          color: SECONDARY,
-          "& .MuiSlider-thumb": { width: 18, height: 18 },
-        }}
-      />
-    </Box>
+      {type === "curseur" && (
+        <Slider
+          value={valeur}
+          onChange={(_, v) => onChange(v)}
+          sx={{ color: SECONDARY, "& .MuiSlider-thumb": { width: 18, height: 18 }, mt: 1 }}
+        />
+      )}
+    </Paper>
   );
 }
 
 function EvaluationEncadrant() {
-  const { stagiaireId } = useParams();
+  const { stagiaireId, evaluationId } = useParams();
   const navigate = useNavigate();
+  const modeEdition = Boolean(evaluationId);
 
   const [stagiaire, setStagiaire] = useState(null);
   const [loading, setLoading] = useState(true);
   const [enregistrement, setEnregistrement] = useState(false);
   const [error, setError] = useState("");
   const [succes, setSucces] = useState("");
+  const [etapeActive, setEtapeActive] = useState(0);
 
   const [criteres, setCriteres] = useState({
     competences_techniques: 0,
@@ -182,6 +225,7 @@ function EvaluationEncadrant() {
     autonomie: 0,
     ponctualite: 0,
   });
+  const [titre, setTitre] = useState("Évaluation de fin de stage");
   const [commentaireGlobal, setCommentaireGlobal] = useState("");
   const [recommandations, setRecommandations] = useState("");
 
@@ -200,13 +244,35 @@ function EvaluationEncadrant() {
       })
       .then((data) => {
         setStagiaire(data);
-        setLoading(false);
+
+        if (modeEdition) {
+          return fetch(`${API_URL}/moi/mes-stagiaires/${stagiaireId}/evaluations/${evaluationId}`, {
+            headers: authHeaders(),
+          })
+            .then((res) => {
+              if (!res.ok) throw new Error("Evaluation introuvable");
+              return res.json();
+            })
+            .then((evaluation) => {
+              setTitre(evaluation.titre || "Évaluation de fin de stage");
+              setCriteres(evaluation.criteres || {
+                competences_techniques: 0,
+                qualite_travail: 0,
+                communication: 0,
+                autonomie: 0,
+                ponctualite: 0,
+              });
+              setCommentaireGlobal(evaluation.commentaire_global || "");
+              setRecommandations(evaluation.recommandations || "");
+            });
+        }
       })
+      .then(() => setLoading(false))
       .catch(() => {
-        setError("Impossible de charger les informations du stagiaire.");
+        setError(modeEdition ? "Impossible de charger cette évaluation." : "Impossible de charger les informations du stagiaire.");
         setLoading(false);
       });
-  }, [stagiaireId, navigate]);
+  }, [stagiaireId, evaluationId, modeEdition, navigate]);
 
   if (!stagiaireId) {
     return (
@@ -243,11 +309,16 @@ function EvaluationEncadrant() {
     setError("");
     setSucces("");
     try {
-      const reponse = await fetch(`${API_URL}/moi/mes-stagiaires/${stagiaireId}/evaluations`, {
-        method: "POST",
+      const url = modeEdition
+        ? `${API_URL}/moi/mes-stagiaires/${stagiaireId}/evaluations/${evaluationId}`
+        : `${API_URL}/moi/mes-stagiaires/${stagiaireId}/evaluations`;
+      const methode = modeEdition ? "PUT" : "POST";
+
+      const reponse = await fetch(url, {
+        method: methode,
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
-          titre: "Évaluation de fin de stage",
+          titre,
           date_evaluation: new Date().toISOString().slice(0, 10),
           criteres,
           commentaire_global: commentaireGlobal || null,
@@ -257,6 +328,9 @@ function EvaluationEncadrant() {
       });
       if (!reponse.ok) throw new Error("Erreur lors de l'enregistrement");
       setSucces(statut === "soumise" ? "Évaluation enregistrée avec succès." : "Brouillon enregistré.");
+      if (statut === "soumise") {
+        setTimeout(() => navigate("/encadrant/evaluations"), 1200);
+      }
     } catch {
       setError("Impossible d'enregistrer l'évaluation.");
     } finally {
@@ -264,11 +338,14 @@ function EvaluationEncadrant() {
     }
   };
 
+  const etapeSuivante = () => setEtapeActive((e) => Math.min(e + 1, ETAPES.length - 1));
+  const etapePrecedente = () => setEtapeActive((e) => Math.max(e - 1, 0));
+
   return (
     <Box sx={{ bgcolor: BACKGROUND, minHeight: "100%" }}>
       <BarreDuHaut navigate={navigate} />
 
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" }, maxWidth: 820, mx: "auto" }}>
         <Breadcrumbs sx={{ mb: 1 }}>
           <Link underline="hover" sx={{ color: TEXT_LIGHT, cursor: "pointer" }} onClick={() => navigate("/encadrant/evaluations")}>
             Évaluations
@@ -279,7 +356,7 @@ function EvaluationEncadrant() {
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2, mb: 3 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
-              Évaluation de fin de stage
+              {modeEdition ? "Modifier l'évaluation" : "Évaluation de fin de stage"}
             </Typography>
             <Typography sx={{ color: TEXT_LIGHT, mt: 0.5 }}>
               Stagiaire : <b style={{ color: PRIMARY }}>{stagiaire.prenom} {stagiaire.nom}</b> · Période : {formatPeriode(stagiaire.date_debut, stagiaire.date_fin)}
@@ -292,86 +369,43 @@ function EvaluationEncadrant() {
           />
         </Box>
 
+        <Divider sx={{ mb: 3 }} />
+
         {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
         {succes && <Alert severity="success" sx={{ mb: 3 }}>{succes}</Alert>}
 
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 3 }}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${BORDER}`, bgcolor: WHITE, flex: 2, minWidth: 320 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: PRIMARY, mb: 3, fontSize: "1.1rem" }}>
-              Critères de Performance
-            </Typography>
+        <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, border: `1px solid ${BORDER}`, bgcolor: WHITE, mb: 3 }}>
+          <Stepper activeStep={etapeActive} alternativeLabel>
+            {ETAPES.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </Paper>
 
-            <CritereEtoiles
-              label="Compétences techniques"
-              description="Maîtrise des outils et processus"
-              valeur={criteres.competences_techniques}
-              onChange={(v) => mettreAJourCritere("competences_techniques", v)}
-            />
-            <CritereEtoiles
-              label="Qualité du travail"
-              description="Précision, respect des normes et rigueur"
-              valeur={criteres.qualite_travail}
-              onChange={(v) => mettreAJourCritere("qualite_travail", v)}
-            />
-            <CritereEtoiles
-              label="Communication"
-              description="Intégration équipe et clarté des rapports"
-              valeur={criteres.communication}
-              onChange={(v) => mettreAJourCritere("communication", v)}
-            />
-            <CritereCurseur
-              label="Autonomie"
-              description="Capacité à prendre des initiatives"
-              valeur={criteres.autonomie}
-              onChange={(v) => mettreAJourCritere("autonomie", v)}
-            />
-            <CritereCurseur
-              label="Ponctualité"
-              description="Respect des horaires et délais"
-              valeur={criteres.ponctualite}
-              onChange={(v) => mettreAJourCritere("ponctualite", v)}
-            />
-          </Paper>
-
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 280 }}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 4, bgcolor: PRIMARY }}>
-              <Typography variant="caption" sx={{ color: "#AEB6D6", fontWeight: 700, letterSpacing: 0.5 }}>
-                APERÇU STAGIAIRE
+        {etapeActive === 0 && (
+          <Box>
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${BORDER}`, bgcolor: WHITE, mb: 2 }}>
+              <Typography variant="body1" fontWeight={700} sx={{ color: PRIMARY, mb: 1 }}>
+                Titre de l'évaluation
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 1.5, mb: 2 }}>
-                <Avatar
-                  src={stagiaire.photo_url ? `${API_URL}${stagiaire.photo_url}` : undefined}
-                  sx={{ width: 56, height: 56, bgcolor: SECONDARY, border: `2px solid ${SECONDARY}` }}
-                >
-                  {stagiaire.prenom?.charAt(0)}
-                </Avatar>
-                <Box>
-                  <Typography sx={{ color: WHITE, fontWeight: 700 }}>
-                    {stagiaire.prenom} {stagiaire.nom}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "#AEB6D6" }}>
-                    {stagiaire.niveau_etudes || "—"} · {stagiaire.etablissement || "—"}
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ display: "flex", gap: 1.5 }}>
-                <Box sx={{ bgcolor: "rgba(255,255,255,0.08)", borderRadius: 2, p: 1.5, flex: 1 }}>
-                  <Typography variant="caption" sx={{ color: "#AEB6D6" }}>Durée</Typography>
-                  <Typography sx={{ color: WHITE, fontWeight: 700 }}>
-                    {stagiaire.date_debut && stagiaire.date_fin
-                      ? `${Math.round((new Date(stagiaire.date_fin) - new Date(stagiaire.date_debut)) / (1000 * 60 * 60 * 24 * 30))} mois`
-                      : "—"}
-                  </Typography>
-                </Box>
-                <Box sx={{ bgcolor: "rgba(255,255,255,0.08)", borderRadius: 2, p: 1.5, flex: 1 }}>
-                  <Typography variant="caption" sx={{ color: "#AEB6D6" }}>Statut</Typography>
-                  <Typography sx={{ color: WHITE, fontWeight: 700 }}>
-                    {stagiaire.statut === "en_cours" ? "En cours" : stagiaire.statut === "termine" ? "Terminé" : stagiaire.statut || "—"}
-                  </Typography>
-                </Box>
-              </Box>
+              <TextField
+                fullWidth
+                value={titre}
+                onChange={(e) => setTitre(e.target.value)}
+                placeholder="Ex: Évaluation de fin de stage"
+              />
             </Paper>
+            {Object.keys(LABELS_CRITERES).map((cle) => (
+              <CarteCritere key={cle} cle={cle} valeur={criteres[cle]} onChange={(v) => mettreAJourCritere(cle, v)} />
+            ))}
+          </Box>
+        )}
 
+        {etapeActive === 1 && (
+          <Box>
+            <CarteApercuStagiaire stagiaire={stagiaire} />
             <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${BORDER}`, bgcolor: WHITE }}>
               <Typography variant="body1" fontWeight={700} sx={{ color: PRIMARY, mb: 1 }}>
                 Commentaire Global
@@ -397,25 +431,80 @@ function EvaluationEncadrant() {
                 onChange={(e) => setRecommandations(e.target.value)}
               />
             </Paper>
-
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
-              disabled={enregistrement}
-              onClick={() => enregistrerEvaluation("soumise")}
-              sx={{ bgcolor: SECONDARY, "&:hover": { bgcolor: "#B8181D" }, borderRadius: 2, textTransform: "none", fontWeight: 700, py: 1.3 }}
-            >
-              Enregistrer l'évaluation
-            </Button>
-            <Button
-              variant="outlined"
-              disabled={enregistrement}
-              onClick={() => enregistrerEvaluation("brouillon")}
-              sx={{ borderColor: BORDER, color: PRIMARY, borderRadius: 2, textTransform: "none", fontWeight: 700, py: 1.3 }}
-            >
-              Enregistrer en brouillon
-            </Button>
           </Box>
+        )}
+
+        {etapeActive === 2 && (
+          <Box>
+            <CarteApercuStagiaire stagiaire={stagiaire} />
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: `1px solid ${BORDER}`, bgcolor: WHITE, mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: PRIMARY, mb: 2, fontSize: "1.05rem" }}>
+                Récapitulatif des critères
+              </Typography>
+              {Object.keys(LABELS_CRITERES).map((cle) => (
+                <Box key={cle} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1 }}>
+                  <Typography sx={{ color: TEXT_LIGHT }}>{LABELS_CRITERES[cle].label}</Typography>
+                  <Typography sx={{ fontWeight: 700, color: SECONDARY }}>
+                    {LABELS_CRITERES[cle].type === "etoiles" ? `${criteres[cle]} / 5` : `${criteres[cle]}%`}
+                  </Typography>
+                </Box>
+              ))}
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="body1" fontWeight={700} sx={{ color: PRIMARY, mb: 0.5 }}>
+                Commentaire global
+              </Typography>
+              <Typography sx={{ color: TEXT_LIGHT, mb: 2 }}>
+                {commentaireGlobal || "—"}
+              </Typography>
+              <Typography variant="body1" fontWeight={700} sx={{ color: PRIMARY, mb: 0.5 }}>
+                Recommandations
+              </Typography>
+              <Typography sx={{ color: TEXT_LIGHT }}>
+                {recommandations || "—"}
+              </Typography>
+            </Paper>
+
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Button
+                variant="contained"
+                startIcon={<SaveIcon />}
+                disabled={enregistrement}
+                onClick={() => enregistrerEvaluation("soumise")}
+                sx={{ bgcolor: SECONDARY, "&:hover": { bgcolor: "#B8181D" }, borderRadius: 2, textTransform: "none", fontWeight: 700, py: 1.3, flex: 1 }}
+              >
+                {modeEdition ? "Valider et soumettre" : "Enregistrer l'évaluation"}
+              </Button>
+              <Button
+                variant="outlined"
+                disabled={enregistrement}
+                onClick={() => enregistrerEvaluation("brouillon")}
+                sx={{ borderColor: BORDER, color: PRIMARY, borderRadius: 2, textTransform: "none", fontWeight: 700, py: 1.3, flex: 1 }}
+              >
+                Enregistrer en brouillon
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            disabled={etapeActive === 0}
+            onClick={etapePrecedente}
+            sx={{ color: PRIMARY, textTransform: "none", fontWeight: 700 }}
+          >
+            Précédent
+          </Button>
+          {etapeActive < ETAPES.length - 1 && (
+            <Button
+              endIcon={etapeActive === ETAPES.length - 2 ? <CheckCircleIcon /> : <ArrowForwardIcon />}
+              onClick={etapeSuivante}
+              variant="contained"
+              sx={{ bgcolor: PRIMARY, "&:hover": { bgcolor: "#141F45" }, textTransform: "none", fontWeight: 700, borderRadius: 2, px: 3 }}
+            >
+              {etapeActive === ETAPES.length - 2 ? "Voir le récapitulatif" : "Suivant"}
+            </Button>
+          )}
         </Box>
       </Box>
     </Box>

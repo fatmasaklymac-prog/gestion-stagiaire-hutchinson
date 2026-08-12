@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography, Avatar } from "@mui/material";
+import { Drawer, List, ListItemButton, ListItemIcon, ListItemText, Box, Typography, Avatar, Badge } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GroupsIcon from "@mui/icons-material/Groups";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import EventNoteIcon from "@mui/icons-material/EventNote";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import ChatIcon from "@mui/icons-material/Chat";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 
@@ -18,6 +19,7 @@ const menuItems = [
   { key: "stagiaires", text: "Mes stagiaires", icon: <GroupsIcon />, path: "/encadrant/stagiaires" },
   { key: "evaluations", text: "Évaluations", icon: <AssignmentTurnedInIcon />, path: "/encadrant/evaluations" },
   { key: "reunions", text: "Réunions", icon: <EventNoteIcon />, path: "/encadrant/reunions" },
+  { key: "presences", text: "Présences", icon: <EventAvailableIcon />, path: "/encadrant/presences" },
   { key: "messagerie", text: "Messagerie", icon: <ChatIcon />, path: "/encadrant/messagerie" },
   { key: "notifications", text: "Notifications", icon: <NotificationsIcon />, path: "/encadrant/notifications" },
 ];
@@ -29,11 +31,12 @@ const CLE_PAR_PATH_DEDIE = {
   "/encadrant/stagiaires": "stagiaires",
   "/encadrant/evaluations": "evaluations",
   "/encadrant/reunions": "reunions",
+  "/encadrant/presences": "presences",
   "/encadrant/messagerie": "messagerie",
   "/encadrant/notifications": "notifications",
 };
 
-function SidebarEncadrant({ nom, role = "Encadrant", photoUrl }) {
+function SidebarEncadrant({ nom, role = "Encadrant", photoUrl, messagesNonLus = 0, notificationsNonLues = 0 }) {
   const location = useLocation();
   const initiale = nom ? nom.trim().charAt(0).toUpperCase() : "?";
 
@@ -73,13 +76,22 @@ function SidebarEncadrant({ nom, role = "Encadrant", photoUrl }) {
         },
       }}
     >
-      <Box sx={{ px: 3, py: 3.5 }}>
-        <Typography variant="subtitle1" fontWeight={700}>
-          Hutchinson
-        </Typography>
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.6)" }}>
-          Management System
-        </Typography>
+      <Box sx={{ position: "relative", height: 90, display: "flex", justifyContent: "center", overflow: "visible" }}>
+        <Box
+          component="img"
+          src="/images/sigle-hutchinson.png"
+          alt="Hutchinson"
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            maxWidth: "70px",
+            width: "60%",
+            height: "auto",
+            objectFit: "contain",
+          }}
+        />
       </Box>
 
       <List sx={{ flexGrow: 1, px: 1.5 }}>
@@ -98,7 +110,19 @@ function SidebarEncadrant({ nom, role = "Encadrant", photoUrl }) {
                 "&:hover": { bgcolor: active ? SECONDARY : "rgba(255,255,255,0.08)" },
               }}
             >
-              <ListItemIcon sx={{ color: "white", minWidth: 38 }}>{item.icon}</ListItemIcon>
+              <ListItemIcon sx={{ color: "white", minWidth: 38 }}>
+                {item.key === "messagerie" && messagesNonLus > 0 ? (
+                  <Badge badgeContent={messagesNonLus} color="error">
+                    {item.icon}
+                  </Badge>
+                ) : item.key === "notifications" && notificationsNonLues > 0 ? (
+                  <Badge badgeContent={notificationsNonLues} color="error">
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
+              </ListItemIcon>
               <ListItemText
                 primary={item.text}
                 slotProps={{ primary: { fontSize: "0.9rem", fontWeight: active ? 600 : 400 } }}
@@ -108,15 +132,6 @@ function SidebarEncadrant({ nom, role = "Encadrant", photoUrl }) {
         })}
       </List>
 
-      <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-        <Avatar src={photoUrl || undefined} sx={{ bgcolor: SECONDARY, width: 36, height: 36, fontSize: "0.9rem" }}>
-          {initiale}
-        </Avatar>
-        <Box>
-          <Typography variant="body2" fontWeight={600}>{nom || "—"}</Typography>
-          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.6)" }}>{role}</Typography>
-        </Box>
-      </Box>
     </Drawer>
   );
 }

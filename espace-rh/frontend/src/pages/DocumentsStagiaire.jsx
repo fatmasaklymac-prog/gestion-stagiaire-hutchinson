@@ -4,6 +4,7 @@ import {
   Box,
   Paper,
   Typography,
+  Divider,
   Chip,
   Button,
   CircularProgress,
@@ -34,9 +35,25 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import SearchIcon from "@mui/icons-material/Search";
 import { authHeaders } from "../auth";
-import TopBarStagiaire from "../components/TopBarStagiaire";
-
 const API_URL = "http://127.0.0.1:8001";
+
+async function telechargerFichier(url, nomFichier) {
+  try {
+    const reponse = await fetch(url, { headers: { ...authHeaders() } });
+    if (!reponse.ok) throw new Error("Échec du téléchargement");
+    const blob = await reponse.blob();
+    const urlBlob = window.URL.createObjectURL(blob);
+    const lien = document.createElement("a");
+    lien.href = urlBlob;
+    lien.download = nomFichier || "document";
+    document.body.appendChild(lien);
+    lien.click();
+    lien.remove();
+    window.URL.revokeObjectURL(urlBlob);
+  } catch (erreur) {
+    console.error("Erreur de téléchargement :", erreur);
+  }
+}
 
 const PRIMARY = "#1D2B5B";
 const SECONDARY = "#E31E24";
@@ -64,6 +81,14 @@ const LIBELLES_TYPES = {
   badge_photo: "Badge / Photo",
   fiche_securite: "Fiche sécurité",
   certificat: "Certificat",
+};
+
+// Types que le stagiaire peut deposer lui-meme (hors documents delivres par la RH)
+const TYPES_DEPOT_STAGIAIRE = {
+  convention: LIBELLES_TYPES.convention,
+  rapport_intermediaire: LIBELLES_TYPES.rapport_intermediaire,
+  rapport_final: LIBELLES_TYPES.rapport_final,
+  certificat: LIBELLES_TYPES.certificat,
 };
 
 const STYLES_STATUT = {
@@ -95,7 +120,7 @@ function CarteStat({ icon, label, valeur, couleur }) {
     <Paper
       elevation={0}
       sx={{
-        p: 2.5,
+        p: 3,
         borderRadius: 4,
         border: `1px solid ${BORDER}`,
         bgcolor: WHITE,
@@ -105,13 +130,26 @@ function CarteStat({ icon, label, valeur, couleur }) {
         "&:hover": { transform: "translateY(-3px)", boxShadow: "0 8px 25px rgba(0,0,0,0.06)" },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-        <Avatar sx={{ bgcolor: `${couleur}20`, color: couleur, width: 32, height: 32 }}>{icon}</Avatar>
-        <Typography variant="caption" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase" }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            bgcolor: `${couleur}20`,
+            color: couleur,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {icon}
+        </Box>
+        <Typography variant="body2" sx={{ color: TEXT_LIGHT, fontWeight: 600, textTransform: "uppercase" }}>
           {label}
         </Typography>
       </Box>
-      <Typography variant="h5" sx={{ color: "#1F2937" , fontWeight: 700 }}>
+      <Typography variant="h3" sx={{ color: PRIMARY, fontWeight: 800, fontSize: "2rem" }}>
         {valeur}
       </Typography>
     </Paper>
@@ -278,8 +316,7 @@ function DocumentsStagiaire() {
   if (loading) {
     return (
       <>
-        <TopBarStagiaire nom={profil?.nom} titre="Mes documents" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
           <CircularProgress sx={{ color: PRIMARY }} />
         </Box>
       </>
@@ -288,15 +325,13 @@ function DocumentsStagiaire() {
 
   return (
     <>
-      <TopBarStagiaire nom={profil?.nom} titre="Mes documents" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+<Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3, flexWrap: "wrap", gap: 2 }}>
             <Box>
-              <Typography variant="h6" sx={{ color: "#1F2937" , fontWeight: 700 }}>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
                 Gestion documentaire
               </Typography>
-              <Typography variant="body2" sx={{ color: TEXT_LIGHT }}>
+              <Typography variant="body2" sx={{ color: TEXT_LIGHT, mt: 0.5 }}>
                 Centralisez, suivez et gérez tous vos documents administratifs de stage.
               </Typography>
             </Box>
@@ -314,6 +349,8 @@ function DocumentsStagiaire() {
               + Ajouter un document
             </Button>
           </Box>
+
+          <Divider sx={{ mb: 3 }} />
 
           {(error || erreurProfil) && (
             <Typography variant="body2" sx={{ color: SECONDARY, mb: 2 }}>
@@ -417,9 +454,35 @@ function DocumentsStagiaire() {
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 3 }}>
                     <IconeDocument icon={doc.icon} />
-                    <Typography variant="body2" sx={{ color: "#1F2937" , fontWeight: 600 }}>
-                      {doc.nom}
-                    </Typography>
+                    <Box>
+                      <Typography variant="body2" sx={{ color: "#1F2937" , fontWeight: 600 }}>
+                        {doc.nom}
+                      </Typography>
+                      {(() => {
+                        const origineConfig = {
+                          stagiaire: { label: "Déposé par moi", bg: "#DBEAFE", color: "#2563EB" },
+                          rh: { label: "Reçu du RH", bg: "#DCFCE7", color: "#16A34A" },
+                          encadrant: { label: "Reçu de l'encadrant", bg: "#F3E8FF", color: "#7C3AED" },
+                        };
+                        const conf = origineConfig[doc.origine] || origineConfig.stagiaire;
+                        return (
+                          <Chip
+                            label={conf.label}
+                            size="small"
+                            sx={{
+                              bgcolor: conf.bg,
+                              color: conf.color,
+                              fontWeight: 600,
+                              fontSize: "0.65rem",
+                              height: 20,
+                              borderRadius: 1.5,
+                              mt: 0.3,
+                              px: 0.3,
+                            }}
+                          />
+                        );
+                      })()}
+                    </Box>
                   </Box>
                   <Typography variant="body2" sx={{ color: TEXT_LIGHT, flex: 1.5 }}>
                     {formaterDate(doc.date_document)}
@@ -445,8 +508,9 @@ function DocumentsStagiaire() {
                         <IconButton
                           size="small"
                           disabled={!doc.fichier_url}
-                          href={doc.fichier_url ? `${API_URL}${doc.fichier_url}` : undefined}
-                          download
+                          onClick={() =>
+                            telechargerFichier(`${API_URL}${doc.fichier_url}`, doc.nom)
+                          }
                         >
                           <DownloadIcon fontSize="small" />
                         </IconButton>
@@ -517,7 +581,7 @@ function DocumentsStagiaire() {
             sx={{ mt: 0.5, mb: 2 }}
           >
             <MenuItem value="" disabled>Choisir un type</MenuItem>
-            {Object.entries(LIBELLES_TYPES).map(([valeur, libelle]) => (
+            {Object.entries(TYPES_DEPOT_STAGIAIRE).map(([valeur, libelle]) => (
               <MenuItem key={valeur} value={valeur}>{libelle}</MenuItem>
             ))}
           </Select>

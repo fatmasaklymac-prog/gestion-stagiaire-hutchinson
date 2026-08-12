@@ -12,6 +12,7 @@ import {
   Tabs,
   Tab,
   Badge,
+  Divider,
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
@@ -21,8 +22,6 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import { authHeaders } from "../auth";
-import TopBarStagiaire from "../components/TopBarStagiaire";
-
 const API_URL = "http://127.0.0.1:8001";
 
 const PRIMARY = "#1D2B5B";
@@ -197,8 +196,7 @@ export default function NotificationsStagiaire() {
   if (loading) {
     return (
       <>
-        <TopBarStagiaire nom={profil?.nom} titre="Notifications" photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined} />
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
+<Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
           <CircularProgress sx={{ color: PRIMARY }} />
         </Box>
       </>
@@ -207,22 +205,13 @@ export default function NotificationsStagiaire() {
 
   return (
     <>
-      <TopBarStagiaire
-        nom={profil?.nom}
-        titre="Notifications"
-        photoUrl={profil?.photo_url ? `${API_URL}${profil.photo_url}` : undefined}
-        valeurRecherche={rechercheTexte}
-        onRechercheChange={setRechercheTexte}
-        placeholderRecherche="Rechercher une notification..."
-      />
-
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
+<Box sx={{ p: { xs: 2, md: 4 }, pt: { xs: "56px", md: "120px" } }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3, flexWrap: "wrap", gap: 2 }}>
             <Box>
-              <Typography variant="h6" fontWeight={700} sx={{ color: "#1F2937" }}>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: PRIMARY, fontSize: "1.75rem" }}>
                 Notifications
               </Typography>
-              <Typography variant="body2" sx={{ color: TEXT_LIGHT }}>
+              <Typography variant="body2" sx={{ color: TEXT_LIGHT, mt: 0.5 }}>
                 Restez informé de vos documents, messages et mises à jour.
               </Typography>
             </Box>
@@ -242,6 +231,8 @@ export default function NotificationsStagiaire() {
               Tout marquer comme lu
             </Button>
           </Box>
+
+          <Divider sx={{ mb: 3 }} />
 
           {(error || erreurProfil) && (
             <Alert severity="error" sx={{ mb: 3 }}>
